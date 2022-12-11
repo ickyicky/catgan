@@ -1,0 +1,16 @@
+data:
+  root_dir: "data/*.png"
+  batch_size: 64
+train:
+  learning_rate: 0.001
+  num_of_epochs: 1000
+  val_data_percentage: 0.2
+generator:
+  load_path: "generator.pth"
+  save_to: "generator_{epoch}.pth" 
+discriminator:
+  load_path: "discriminator.pth"
+  save_to: "discriminator_{epoch}.pth" 
+real_label: 1
+fake_label: 0
+generator_fake_label: 1

@@ -161,11 +161,7 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
-<<<<<<< HEAD
-        out = self.conv5(out)
-=======
         out = self.fully_connected(out)
->>>>>>> a2301fa (final models?)
         return out
 
 

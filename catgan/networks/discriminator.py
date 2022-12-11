@@ -11,6 +11,8 @@ class LSGANDiscriminatorConvBlock(nn.Module):
         kernel_size: int,
         stride: int,
         padding: int = 0,
+        batch_normalization: bool = True,
+        activation: bool = True,
     ):
         """Discriminator conv block consists from a convolutional
         layer with parametrized kernel size, output filters and stride,
@@ -37,8 +39,14 @@ class LSGANDiscriminatorConvBlock(nn.Module):
             stride=stride,
             padding=padding,
         )
-        self.batch_normalization = nn.BatchNorm2d(out_channels)
-        self.activation = nn.LeakyReLU(True)
+
+        self.has_bn = batch_normalization
+        if batch_normalization:
+            self.batch_normalization = nn.BatchNorm2d(out_channels)
+
+        self.has_activation = activation
+        if self.has_activation:
+            self.activation = nn.ReLU(True)
 
     def forward(self, x):
         """forward.
@@ -46,36 +54,13 @@ class LSGANDiscriminatorConvBlock(nn.Module):
         :param x:
         """
         out = self.conv(x)
-        out = self.batch_normalization(out)
-        out = self.activation(out)
-        return out
 
+        if self.has_bn:
+            out = self.batch_normalization(out)
 
-class LSGANDiscriminatorFullyConnectedBlock(nn.Module):
-    def __init__(self, in_shape: Tuple[int, int], out_features: int):
-        """Discriminator fully connected block
+        if self.has_activation:
+            out = self.activation(out)
 
-        :param in_shape:
-        :type in_shape: Tuple[int]
-        :param out_features:
-        :type out_features: int
-        """
-        super().__init__()
-
-        self.reshape = lambda x: x.view(x.shape[0], in_shape[0] * in_shape[1])
-        self.linear = nn.Linear(
-            in_features=in_shape[0] * in_shape[1],
-            out_features=out_features,
-            bias=False,
-        )
-
-    def forward(self, x):
-        """forward.
-
-        :param x:
-        """
-        out = self.reshape(x)
-        out = self.linear(out)
         return out
 
 
@@ -87,27 +72,25 @@ class LSGANDiscriminator(nn.Module):
         """
         super().__init__()
 
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(
-                kernel_size=5,
-                in_channels=3,
-                out_channels=64,
-                stride=2,
-                padding=4,
-            ),
-            nn.LeakyReLU(True),
+        self.conv1 = LSGANDiscriminatorConvBlock(
+            kernel_size=4,
+            in_channels=3,
+            out_channels=64,
+            stride=2,
+            padding=1,
+            batch_normalization=False,
         )
 
         self.conv2 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=64,
             out_channels=128,
             stride=2,
-            padding=2,
+            padding=1,
         )
 
         self.conv3 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=128,
             out_channels=256,
             stride=2,
@@ -115,16 +98,22 @@ class LSGANDiscriminator(nn.Module):
         )
 
         self.conv4 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=256,
             out_channels=512,
             stride=2,
+            padding=1,
         )
 
-        self.fully_connected = LSGANDiscriminatorFullyConnectedBlock(
-            in_shape=(512, 4),
-            out_features=1,
+        self.conv5 = LSGANDiscriminatorConvBlock(
+            kernel_size=4,
+            in_channels=512,
+            out_channels=1,
+            stride=1,
+            padding=0,
         )
+
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         """forward.
@@ -135,7 +124,8 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
-        out = self.fully_connected(out)
+        out = self.conv5(out)
+        out = self.sigmoid(out)
         return out
 
 

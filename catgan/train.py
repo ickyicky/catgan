@@ -24,7 +24,7 @@ def batch_of_noise(b_size: int, device):
     :type b_size: int
     :param device:
     """
-    return torch.randn(b_size, 1024, device=device)
+    return torch.randn(b_size, 100, 1, 1, device=device)
 
 
 def common_compute(model, batch, device):

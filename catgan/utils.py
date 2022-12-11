@@ -94,7 +94,6 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
 
 
 def save_model(model, path: str) -> None:
-    folder = os.path.join(os.path.split(path)[:-1])
-    if not os.path.exists:
-        os.makedirs(folder, exist_ok=True)
+    folder = os.path.join(*os.path.split(path)[:-1])
+    os.makedirs(folder, exist_ok=True)
     torch.save(model.state_dict(), path)

@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 from typing import Any
 
 
@@ -43,7 +44,7 @@ def calculate_loss(result, label, criterion, device):
     return criterion(result, label)
 
 
-def train_batch(model, optimizer, batch, label, criterion, device):
+def train_model(model, optimizer, batch, label, criterion, device):
     """train_batch.
 
     :param model:
@@ -93,7 +94,7 @@ def train_step(
     labels = torch.full((b_size,), real_label, dtype=torch.float)
 
     # train discriminator on real data
-    loss_d_real = train_batch(
+    loss_d_real = train_model(
         discriminator,
         discriminator_optimizer,
         batch,
@@ -105,7 +106,7 @@ def train_step(
     # train discriminator on fake data
     labels.fill(fake_label)
     fake_batch = generator(batch_of_noise(b_size, device))
-    loss_d_fake = train_batch(
+    loss_d_fake = train_model(
         discriminator,
         discriminator_optimizer,
         fake_batch,
@@ -116,7 +117,7 @@ def train_step(
 
     # train generator with trained discriminator
     labels.fill(generator_fake_label)
-    loss_g = train_batch(
+    loss_g = train_model(
         discriminator,
         generator_optimizer,
         fake_batch,
@@ -126,3 +127,56 @@ def train_step(
     )
 
     return loss_d_real, loss_d_fake, loss_g
+
+
+def train(
+    train_data,
+    test_data,
+    num_of_epochs,
+    generator,
+    generator_optimizer,
+    generator_criterion,
+    discriminator,
+    discriminator_optimizer,
+    discriminator_criterion,
+    batch,
+    device,
+    real_label,
+    fake_label,
+    generator_fake_label,
+):
+    for epoch in range(num_of_epochs):
+        generator.train()
+        discriminator.train()
+
+        for batch in tqdm(train_data, position=0, leave=False, desc=f"epoch: {epoch}"):
+            loss_d_real, loss_d_fake, loss_g = train_step(
+                generator,
+                generator_optimizer,
+                generator_criterion,
+                discriminator,
+                discriminator_optimizer,
+                discriminator_criterion,
+                batch,
+                device,
+                real_label,
+                fake_label,
+                generator_fake_label,
+            )
+
+        # TODO
+        # generator.eval()
+        # discriminator.eval()
+        # with torch.no_grad():
+        #     for batch in test_data:
+        #         loss_d_real, loss_d_fake, loss_g = test_step(
+        #             generator,
+        #             generator_criterion,
+        #             discriminator,
+        #             discriminator_criterion,
+        #             batch,
+        #             device,
+        #             real_label,
+        #             fake_label,
+        #             generator_fake_label,
+        #         )

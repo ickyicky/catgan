@@ -5,7 +5,12 @@ from torch.utils.data.dataset import Dataset
 
 
 class CatsDataset(Dataset):
-    """Cats dataset."""
+    """Cats dataset.
+
+    Basically https://github.com/gmalivenko/cat-gan/blob/master/dataset.py
+    with minor changes, because its implementation was so plain and simple
+    I was't able to write anything more elegant :)
+    """
 
     def __init__(self, root_dir, transform):
         """__init__.

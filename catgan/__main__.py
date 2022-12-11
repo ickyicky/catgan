@@ -46,7 +46,7 @@ if __name__ == "__main__":
         set_logging(log)
 
         discriminator = load_discriminator(config.discriminator.load_path)
-        generator = load_generator(config.discriminator.load_path)
+        generator = load_generator(config.generator.load_path)
 
         train_main(generator, discriminator, config)
 
@@ -59,6 +59,6 @@ if __name__ == "__main__":
         set_logging(log)
 
         discriminator = load_discriminator(config.discriminator.load_path)
-        generator = load_generator(config.discriminator.load_path)
+        generator = load_generator(config.generator.load_path)
 
         test_main(generator, discriminator, config)

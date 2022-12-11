@@ -69,7 +69,7 @@ def load_generator(load_path: Optional[str]) -> LSGANGenerator:
                 f"Given generator load_path: {load_path} does not exist, initiallizing new model"
             )
         else:
-            model.load_state_dict(load_path)
+            model.load_state_dict(torch.load(load_path))
 
     model = model.to(get_device())
 
@@ -86,7 +86,7 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
                 f"Given discriminator load_path: {load_path} does not exist, initiallizing new model"
             )
         else:
-            model.load_state_dict(load_path)
+            model.load_state_dict(torch.load(load_path))
 
     model = model.to(get_device())
 

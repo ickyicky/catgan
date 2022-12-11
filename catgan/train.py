@@ -10,6 +10,7 @@ from .networks.discriminator import LSGANDiscriminator
 from .utils import transform, get_device
 from .dataloader import CatsDataset
 from .config import Config
+from .wandb import log as wandblog
 
 
 log = logging.getLogger(__name__)
@@ -192,7 +193,7 @@ def validate_step(
         device,
     )
 
-    return loss_d_real, loss_d_fake, loss_g
+    return loss_d_real, loss_d_fake, loss_g, fake
 
 
 def train(
@@ -214,7 +215,15 @@ def train(
         generator.train()
         discriminator.train()
 
-        losses = {"d_real": [], "d_fake": [], "g": []}
+        losses = {
+            "train_d_real": [],
+            "train_d_fake": [],
+            "train_g": [],
+            "valid_d_real": [],
+            "valid_d_fake": [],
+            "valid_g": [],
+            "epoch": epoch,
+        }
 
         for batch in tqdm(
             train_data,
@@ -236,19 +245,12 @@ def train(
                 generator_fake_label,
             )
 
-            losses["d_real"].append(loss_d_real)
-            losses["d_fake"].append(loss_d_fake)
-            losses["g"].append(loss_g)
-
-        logging_communicate = f"Epoch {epoch}. train losses: "
-        for name, val in losses.items():
-            avg_loss = torch.stack(val).mean()
-            logging_communicate += f"{name}: {avg_loss:0.2f} "
+            losses["train_d_real"].append(loss_d_real)
+            losses["train_d_fake"].append(loss_d_fake)
+            losses["train_g"].append(loss_g)
 
         generator.eval()
         discriminator.eval()
-
-        losses = {"d_real": [], "d_fake": [], "g": []}
 
         with torch.no_grad():
             for batch in tqdm(
@@ -257,7 +259,7 @@ def train(
                 leave=False,
                 desc=f"VALIDATE epoch: {epoch}/{num_of_epochs}",
             ):
-                loss_d_real, loss_d_fake, loss_g = validate_step(
+                loss_d_real, loss_d_fake, loss_g, fake = validate_step(
                     generator,
                     generator_criterion,
                     discriminator,
@@ -269,16 +271,13 @@ def train(
                     generator_fake_label,
                 )
 
-                losses["d_real"].append(loss_d_real)
-                losses["d_fake"].append(loss_d_fake)
-                losses["g"].append(loss_g)
+                losses["valid_d_real"].append(loss_d_real)
+                losses["valid_d_fake"].append(loss_d_fake)
+                losses["valid_g"].append(loss_g)
 
-        logging_communicate += f"; train losses: "
-        for name, val in losses.items():
-            avg_loss = torch.stack(val).mean()
-            logging_communicate += f"{name}: {avg_loss:0.2f} "
-
-        log.info(logging_communicate)
+        avg_losses = {key: torch.stack(val).mean() for key, val in losses.items()}
+        log.info(", ".join(f"{key}={val}" for key, val in avg_losses.items()))
+        wandblog(avg_losses)
 
 
 def train_main(

@@ -4,6 +4,7 @@ import logging
 from .utils import load_discriminator, load_generator, set_logging
 from .train import train_main
 from .config import Config
+from .wandb import init
 
 
 log = logging.getLogger()
@@ -39,4 +40,5 @@ if __name__ == "__main__":
     generator = load_generator(config.discriminator.load_path)
 
     if args.train:
+        init("catgan")
         train_main(generator, discriminator, config)

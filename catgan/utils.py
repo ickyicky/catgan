@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import torch
 import torchvision.transforms as transforms
@@ -13,6 +14,16 @@ log = logging.getLogger(__name__)
 transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
 )
+
+
+def set_logging(root):
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 
 def get_device():

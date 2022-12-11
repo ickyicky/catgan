@@ -1,10 +1,17 @@
 import argparse
 import yaml
-from .utils import load_discriminator, load_generator
+import logging
+from .utils import load_discriminator, load_generator, set_logging
+from .train import train_main
 from .config import Config
 
 
+log = logging.getLogger()
+
+
 if __name__ == "__main__":
+    set_logging(log)
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
@@ -32,6 +39,4 @@ if __name__ == "__main__":
     generator = load_generator(config.discriminator.load_path)
 
     if args.train:
-        from .train import train_main
-
         train_main(generator, discriminator, config)

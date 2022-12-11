@@ -4,11 +4,16 @@ from torch.utils.data.dataset import random_split
 import torch.optim as optim
 from tqdm import tqdm
 from typing import Any
+import logging
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from .utils import transform, get_device
 from .dataloader import CatsDataset
 from .config import Config
+
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 def batch_of_noise(b_size: int, device):
@@ -29,7 +34,7 @@ def common_compute(model, batch, device):
     :param device:
     """
     batch = batch.to(device)
-    result = model(batch)
+    result = model(batch).view(-1)
     return result
 
 
@@ -45,11 +50,10 @@ def calculate_loss(result, label, criterion, device):
     return criterion(result, label)
 
 
-def train_model(model, optimizer, batch, label, criterion, device):
+def train_model(model, batch, label, criterion, device):
     """train_batch.
 
     :param model:
-    :param optimizer:
     :param batch:
     :param label:
     :param criterion:
@@ -58,8 +62,20 @@ def train_model(model, optimizer, batch, label, criterion, device):
     result = common_compute(model, batch, device)
     loss = calculate_loss(result, label, criterion, device)
     loss.backward()
-    optimizer.step()
-    optimizer.zero_grad()
+    return loss
+
+
+def validate_model(model, batch, label, criterion, device):
+    """train_batch.
+
+    :param model:
+    :param batch:
+    :param label:
+    :param criterion:
+    :param device:
+    """
+    result = common_compute(model, batch, device)
+    loss = calculate_loss(result, label, criterion, device)
     return loss
 
 
@@ -95,9 +111,9 @@ def train_step(
     labels = torch.full((b_size,), real_label, dtype=torch.float)
 
     # train discriminator on real data
+    discriminator_optimizer.zero_grad()
     loss_d_real = train_model(
         discriminator,
-        discriminator_optimizer,
         batch,
         labels,
         discriminator_criterion,
@@ -109,8 +125,58 @@ def train_step(
     fake_batch = generator(batch_of_noise(b_size, device))
     loss_d_fake = train_model(
         discriminator,
-        discriminator_optimizer,
+        fake_batch.detach(),
+        labels,
+        discriminator_criterion,
+        device,
+    )
+    discriminator_optimizer.step()
+
+    # train generator with trained discriminator
+    generator_optimizer.zero_grad()
+    labels.fill_(generator_fake_label)
+    loss_g = train_model(
+        discriminator,
         fake_batch,
+        labels,
+        generator_criterion,
+        device,
+    )
+    generator_optimizer.step()
+
+    return loss_d_real, loss_d_fake, loss_g
+
+
+def validate_step(
+    generator,
+    generator_criterion,
+    discriminator,
+    discriminator_criterion,
+    batch,
+    device,
+    real_label,
+    fake_label,
+    generator_fake_label,
+):
+    # create labels
+    b_size = batch.size(0)
+    labels = torch.full((b_size,), real_label, dtype=torch.float)
+
+    # train discriminator on real data
+    loss_d_real = validate_model(
+        discriminator,
+        batch,
+        labels,
+        discriminator_criterion,
+        device,
+    )
+
+    # train discriminator on fake data
+    labels.fill_(fake_label)
+    fake_batch = generator(batch_of_noise(b_size, device))
+    loss_d_fake = validate_model(
+        discriminator,
+        fake_batch.detach(),
         labels,
         discriminator_criterion,
         device,
@@ -118,9 +184,8 @@ def train_step(
 
     # train generator with trained discriminator
     labels.fill_(generator_fake_label)
-    loss_g = train_model(
+    loss_g = validate_model(
         discriminator,
-        generator_optimizer,
         fake_batch,
         labels,
         generator_criterion,
@@ -132,7 +197,7 @@ def train_step(
 
 def train(
     train_data,
-    test_data,
+    validate_data,
     num_of_epochs,
     generator,
     generator_optimizer,
@@ -149,7 +214,14 @@ def train(
         generator.train()
         discriminator.train()
 
-        for batch in tqdm(train_data, position=0, leave=False, desc=f"epoch: {epoch}"):
+        losses = {"d_real": [], "d_fake": [], "g": []}
+
+        for batch in tqdm(
+            train_data,
+            position=0,
+            leave=False,
+            desc=f"TRAIN epoch: {epoch}/{num_of_epochs}",
+        ):
             loss_d_real, loss_d_fake, loss_g = train_step(
                 generator,
                 generator_optimizer,
@@ -163,23 +235,50 @@ def train(
                 fake_label,
                 generator_fake_label,
             )
-            print(loss_d_fake, loss_d_real, loss_g)
 
-        # generator.eval()
-        # discriminator.eval()
-        # with torch.no_grad():
-        #     for batch in test_data:
-        #         loss_d_real, loss_d_fake, loss_g = test_step(
-        #             generator,
-        #             generator_criterion,
-        #             discriminator,
-        #             discriminator_criterion,
-        #             batch,
-        #             device,
-        #             real_label,
-        #             fake_label,
-        #             generator_fake_label,
-        #         )
+            losses["d_real"].append(loss_d_real)
+            losses["d_fake"].append(loss_d_fake)
+            losses["g"].append(loss_g)
+
+        logging_communicate = f"Epoch {epoch}. train losses: "
+        for name, val in losses.items():
+            avg_loss = torch.stack(val).mean()
+            logging_communicate += f"{name}: {avg_loss:0.2f} "
+
+        generator.eval()
+        discriminator.eval()
+
+        losses = {"d_real": [], "d_fake": [], "g": []}
+
+        with torch.no_grad():
+            for batch in tqdm(
+                validate_data,
+                position=0,
+                leave=False,
+                desc=f"VALIDATE epoch: {epoch}/{num_of_epochs}",
+            ):
+                loss_d_real, loss_d_fake, loss_g = validate_step(
+                    generator,
+                    generator_criterion,
+                    discriminator,
+                    discriminator_criterion,
+                    batch,
+                    device,
+                    real_label,
+                    fake_label,
+                    generator_fake_label,
+                )
+
+                losses["d_real"].append(loss_d_real)
+                losses["d_fake"].append(loss_d_fake)
+                losses["g"].append(loss_g)
+
+        logging_communicate += f"; train losses: "
+        for name, val in losses.items():
+            avg_loss = torch.stack(val).mean()
+            logging_communicate += f"{name}: {avg_loss:0.2f} "
+
+        log.info(logging_communicate)
 
 
 def train_main(
@@ -211,18 +310,19 @@ def train_main(
         discriminator.parameters(), lr=config.train.learning_rate
     )
 
-    criterion = torch.nn.MSELoss()
+    generator_criterion = torch.nn.MSELoss()
+    discriminator_criterion = torch.nn.MSELoss()
 
     train(
         train_data=train_data_loader,
-        test_data=val_data_loader,
+        validate_data=val_data_loader,
         num_of_epochs=config.train.num_of_epochs,
         generator=generator,
         generator_optimizer=generator_optimizer,
-        generator_criterion=criterion,
+        generator_criterion=generator_criterion,
         discriminator=discriminator,
         discriminator_optimizer=discriminator_optimizer,
-        discriminator_criterion=criterion,
+        discriminator_criterion=discriminator_criterion,
         device=get_device(),
         real_label=config.real_label,
         fake_label=config.fake_label,

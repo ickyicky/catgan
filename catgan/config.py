@@ -2,7 +2,8 @@ from pydantic import BaseModel
 
 
 class DataConfig(BaseModel):
-    root_dir: str
+    train_data: str
+    test_data: str
     batch_size: int
 
 

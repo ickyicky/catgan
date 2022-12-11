@@ -1,8 +1,9 @@
 import argparse
 import yaml
 import logging
-from .utils import load_discriminator, load_generator, set_logging
+from .utils import load_discriminator, load_generator, set_logging, save_model
 from .train import train_main
+from .test import test_main
 from .config import Config
 from .wandb import init
 
@@ -23,6 +24,12 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-t", "--train", action="store_true", help="train models")
     group.add_argument(
+        "-s",
+        "--test",
+        action="store_true",
+        help="test model on test data (runs by default after train)",
+    )
+    group.add_argument(
         "-g",
         "--generate",
         action="store_true",
@@ -42,3 +49,16 @@ if __name__ == "__main__":
         generator = load_generator(config.discriminator.load_path)
 
         train_main(generator, discriminator, config)
+
+        save_model(generator, config.generator.save_to)
+        save_model(discriminator, config.discriminator.save_to)
+
+        test_main(generator, discriminator, config)
+
+    if args.test:
+        set_logging(log)
+
+        discriminator = load_discriminator(config.discriminator.load_path)
+        generator = load_generator(config.discriminator.load_path)
+
+        test_main(generator, discriminator, config)

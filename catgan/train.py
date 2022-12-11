@@ -4,7 +4,6 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import random_split
 import torch.optim as optim
 from tqdm import tqdm
-from typing import Any
 import logging
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
@@ -320,7 +319,7 @@ def train_main(
     :param config:
     :type config: Config
     """
-    dataset = CatsDataset(config.data.root_dir, transform)
+    dataset = CatsDataset(config.data.train_data, transform)
     val_data_size = int(config.train.val_data_percentage * len(dataset))
     train_data, val_data = random_split(
         dataset, [len(dataset) - val_data_size, val_data_size]

@@ -7,4 +7,5 @@ def init(name: str):
 
 
 def log(what: Any) -> None:
-    wandb.log(what)
+    if wandb.run is not None:
+        wandb.log(what)

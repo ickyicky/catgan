@@ -1,6 +1,7 @@
 import argparse
 import os
-from random import choice
+import shutil
+from random import sample
 from glob import glob
 import tarfile
 
@@ -39,13 +40,14 @@ if __name__ == "__main__":
             with tarfile.open(tar_file_name) as file:
                 file.extractall("data")
 
-    if args.split:
-        all_files = os.listdir("data")
+        shutil.rmtree("data_repo")
 
-        test_files = random.choice(
+    if args.split:
+        all_files = glob("data/dataset-part*/*.png")
+
+        test_files = sample(
             all_files, k=int(args.test_percentage / 100 * len(all_files))
         )
-        train_files = [fname for fname in all_files if fname not in test_files]
 
         os.mkdir("data/train")
         os.mkdir("data/test")
@@ -56,8 +58,12 @@ if __name__ == "__main__":
                 os.path.join("data", "test", os.path.basename(fname)),
             )
 
+        train_files = glob("data/dataset-part*/*.png")
         for fname in train_files:
             os.rename(
                 fname,
                 os.path.join("data", "train", os.path.basename(fname)),
             )
+
+        for folder in glob("data/dataset-part*"):
+            shutil.rmtree(folder)

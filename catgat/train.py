@@ -170,6 +170,7 @@ def train(
                 fake_label,
                 generator_fake_label,
             )
+            print(loss_d_fake, loss_d_real, loss_g)
 
         # generator.eval()
         # discriminator.eval()

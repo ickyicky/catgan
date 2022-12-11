@@ -6,16 +6,9 @@ from tqdm import tqdm
 from typing import Any
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
-from .utils import transform
+from .utils import transform, get_device
 from .dataloader import CatsDataset
 from .config import Config
-
-
-def get_device():
-    """get_device."""
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
 
 
 def batch_of_noise(b_size: int, device):

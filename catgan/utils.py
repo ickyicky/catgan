@@ -1,5 +1,6 @@
 import os
 import logging
+import torch
 import torchvision.transforms as transforms
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
@@ -14,6 +15,13 @@ transform = transforms.Compose(
 )
 
 
+def get_device():
+    """get_device."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
 def load_generator(load_path: Optional[str]) -> LSGANGenerator:
     model = LSGANGenerator()
 
@@ -24,6 +32,8 @@ def load_generator(load_path: Optional[str]) -> LSGANGenerator:
             )
         else:
             model.load_state_dict(load_path)
+
+    model = model.to(get_device())
 
     return model
 
@@ -38,5 +48,7 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
             )
         else:
             model.load_state_dict(load_path)
+
+    model = model.to(get_device())
 
     return model

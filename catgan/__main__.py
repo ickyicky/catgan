@@ -6,7 +6,13 @@ from .config import Config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", metavar="FILE", help="configuration file")
+    parser.add_argument(
+        "-c",
+        "--config",
+        metavar="FILE",
+        help="configuration file",
+        default="config.yaml",
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-t", "--train", action="store_true", help="train models")

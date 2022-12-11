@@ -1,3 +1,4 @@
+import wandb
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import random_split
@@ -77,7 +78,7 @@ def validate_model(model, batch, label, criterion, device):
     """
     result = common_compute(model, batch, device)
     loss = calculate_loss(result, label, criterion, device)
-    return loss
+    return loss, result
 
 
 def train_step(
@@ -164,7 +165,7 @@ def validate_step(
     labels = torch.full((b_size,), real_label, dtype=torch.float)
 
     # train discriminator on real data
-    loss_d_real = validate_model(
+    loss_d_real, _ = validate_model(
         discriminator,
         batch,
         labels,
@@ -175,7 +176,7 @@ def validate_step(
     # train discriminator on fake data
     labels.fill_(fake_label)
     fake_batch = generator(batch_of_noise(b_size, device))
-    loss_d_fake = validate_model(
+    loss_d_fake, _ = validate_model(
         discriminator,
         fake_batch.detach(),
         labels,
@@ -185,7 +186,7 @@ def validate_step(
 
     # train generator with trained discriminator
     labels.fill_(generator_fake_label)
-    loss_g = validate_model(
+    loss_g, pred = validate_model(
         discriminator,
         fake_batch,
         labels,
@@ -193,7 +194,7 @@ def validate_step(
         device,
     )
 
-    return loss_d_real, loss_d_fake, loss_g, fake
+    return loss_d_real, loss_d_fake, loss_g, fake, pred
 
 
 def train(
@@ -251,15 +252,19 @@ def train(
 
         generator.eval()
         discriminator.eval()
+        examples = None
 
         with torch.no_grad():
-            for batch in tqdm(
+            bar = tqdm(
                 validate_data,
                 position=0,
                 leave=False,
                 desc=f"VALIDATE epoch: {epoch}/{num_of_epochs}",
-            ):
-                loss_d_real, loss_d_fake, loss_g, fake = validate_step(
+            )
+            last_batch_num = len(bar) - 1
+
+            for i, batch in enumerate(bar):
+                loss_d_real, loss_d_fake, loss_g, fake, pred = validate_step(
                     generator,
                     generator_criterion,
                     discriminator,
@@ -275,9 +280,19 @@ def train(
                 losses["valid_d_fake"].append(loss_d_fake)
                 losses["valid_g"].append(loss_g)
 
+                # only log last validation batch to wandb, no need to spam it with images
+                if i == last_batch_num:
+                    cpu = torch.device("cpu")
+                    fake = fake.to(cpu)
+                    pred = pred.to(cpu)
+                    examples = [
+                        wandb.Image(img, caption="Pred: {val}")
+                        for img, val in zip(fake, pred)
+                    ]
+
         avg_losses = {key: torch.stack(val).mean() for key, val in losses.items()}
         log.info(", ".join(f"{key}={val}" for key, val in avg_losses.items()))
-        wandblog(avg_losses)
+        wandblog(dict(**losses, examples=examples))
 
 
 def train_main(

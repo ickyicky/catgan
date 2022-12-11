@@ -18,7 +18,7 @@ def batch_of_noise(b_size: int, device):
     :type b_size: int
     :param device:
     """
-    return torch.randn(b_size, nz, 1, 1, device=device)
+    return torch.randn(b_size, 1024, device=device)
 
 
 def common_compute(model, batch, device):
@@ -105,7 +105,7 @@ def train_step(
     )
 
     # train discriminator on fake data
-    labels.fill(fake_label)
+    labels.fill_(fake_label)
     fake_batch = generator(batch_of_noise(b_size, device))
     loss_d_fake = train_model(
         discriminator,
@@ -117,7 +117,7 @@ def train_step(
     )
 
     # train generator with trained discriminator
-    labels.fill(generator_fake_label)
+    labels.fill_(generator_fake_label)
     loss_g = train_model(
         discriminator,
         generator_optimizer,

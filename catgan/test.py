@@ -56,18 +56,18 @@ def test_step(
     total_count = 3 * b_size
     correct = 0
 
-    def update_correct(pred: Tensor, labels: Tensor) -> None:
+    def update_correct(pred: Tensor, labels: Tensor) -> int:
         """update_correct.
 
         :param pred:
         :type pred: Tensor
         :param labels:
         :type labels: Tensor
-        :rtype: None
+        :rtype: int
         """
         _, actual_pred = torch.max(pred.data, 0)
         _, actual_labels = torch.max(labels.data, 0)
-        correct += (actual_pred == actual_labels).sum().item()
+        return (actual_pred == actual_labels).sum().item()
 
     labels = torch.full((b_size,), real_label, dtype=torch.float)
 
@@ -79,7 +79,7 @@ def test_step(
         discriminator_criterion,
         device,
     )
-    update_correct(pred, labels)
+    correct += update_correct(pred, labels)
 
     # train discriminator on fake data
     labels.fill_(fake_label)
@@ -91,7 +91,7 @@ def test_step(
         discriminator_criterion,
         device,
     )
-    update_correct(pred, labels)
+    correct += update_correct(pred, labels)
 
     # train generator with trained discriminator
     labels.fill_(generator_fake_label)
@@ -102,7 +102,7 @@ def test_step(
         generator_criterion,
         device,
     )
-    update_correct(pred, labels)
+    correct += update_correct(pred, labels)
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, pred, total_count, correct
 

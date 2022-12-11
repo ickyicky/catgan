@@ -123,8 +123,6 @@ class LSGANDiscriminator(nn.Module):
             padding=0,
         )
 
-        self.sigmoid = nn.Sigmoid()
-
     def forward(self, x: Tensor) -> Tensor:
         """forward.
 
@@ -137,7 +135,6 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.conv5(out)
-        out = self.sigmoid(out)
         return out
 
 

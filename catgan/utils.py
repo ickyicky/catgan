@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import wandb
 import torch
 import torchvision.transforms as transforms
 from .networks.generator import LSGANGenerator
@@ -25,6 +26,20 @@ def set_logging(root):
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
+    if wandb.run is not None:
+        if not os.path.exists("log"):
+            os.mkdir("log")
+
+        run_name = "_".join(wandb.run.name.split("-")[:-1])
+        run_num = wandb.run.name.split("-")[-1]
+        logfile = f"{run_num}_{run_name}.log"
+
+        handler = logging.FileHandler(os.path.join("log", logfile))
+
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        root.addHandler(handler)
+
 
 def get_device():
     """get_device."""
@@ -33,8 +48,20 @@ def get_device():
     return torch.device("cpu")
 
 
+def weights_init(model):
+    classname = model.__class__.__name__
+    if "LSGAN" in classname:
+        pass
+    elif "Conv" in classname:
+        torch.nn.init.normal_(model.weight.data, 0.0, 0.02)
+    elif "BatchNorm" in classname:
+        torch.nn.init.normal_(model.weight.data, 1.0, 0.02)
+        torch.nn.init.constant_(model.bias.data, 0)
+
+
 def load_generator(load_path: Optional[str]) -> LSGANGenerator:
     model = LSGANGenerator()
+    model.apply(weights_init)
 
     if load_path is not None:
         if not os.path.exists(load_path):
@@ -51,6 +78,7 @@ def load_generator(load_path: Optional[str]) -> LSGANGenerator:
 
 def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
     model = LSGANDiscriminator()
+    model.apply(weights_init)
 
     if load_path is not None:
         if not os.path.exists(load_path):

@@ -194,7 +194,7 @@ def validate_step(
         device,
     )
 
-    return loss_d_real, loss_d_fake, loss_g, fake, pred
+    return loss_d_real, loss_d_fake, loss_g, fake_batch, pred
 
 
 def train(
@@ -223,7 +223,6 @@ def train(
             "valid_d_real": [],
             "valid_d_fake": [],
             "valid_g": [],
-            "epoch": epoch,
         }
 
         for batch in tqdm(
@@ -290,9 +289,21 @@ def train(
                         for img, val in zip(fake, pred)
                     ]
 
-        avg_losses = {key: torch.stack(val).mean() for key, val in losses.items()}
-        log.info(", ".join(f"{key}={val}" for key, val in avg_losses.items()))
-        wandblog(dict(**losses, examples=examples))
+        avg_losses = {
+            key: float(torch.stack(val).mean()) for key, val in losses.items()
+        }
+        log.info(f"Epoch: {epoch}/{num_of_epochs}")
+        log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
+        wandb_log = {
+            "epoch": epoch,
+            "learning_rate": {
+                "generator": generator_optimizer.param_groups[0]["lr"],
+                "discriminator": discriminator_optimizer.param_groups[0]["lr"],
+            },
+            "images": examples,
+            "error": avg_losses,
+        }
+        wandblog(wandb_log)
 
 
 def train_main(

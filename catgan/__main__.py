@@ -11,8 +11,6 @@ log = logging.getLogger()
 
 
 if __name__ == "__main__":
-    set_logging(log)
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
@@ -36,9 +34,11 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = Config.parse_obj(yaml.safe_load(f))
 
-    discriminator = load_discriminator(config.discriminator.load_path)
-    generator = load_generator(config.discriminator.load_path)
-
     if args.train:
         init("catgan")
+        set_logging(log)
+
+        discriminator = load_discriminator(config.discriminator.load_path)
+        generator = load_generator(config.discriminator.load_path)
+
         train_main(generator, discriminator, config)

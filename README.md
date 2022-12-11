@@ -22,7 +22,7 @@ pip3 install -r requirements.txt
 
 ## Dataset
 
-For dataset catgan uses (github cat faces dataset)[https://github.com/fferlito/Cat-faces-dataset.git]. There are python scripts available for downloading and splitting the dataset into train and test sub datasets. To fetch and split dataset simply run:
+For dataset catgan uses [github cat faces dataset](https://github.com/fferlito/Cat-faces-dataset.git). There are python scripts available for downloading and splitting the dataset into train and test sub datasets. To fetch and split dataset simply run:
 
 ```bash
 python3 -m catgan.dataset --download

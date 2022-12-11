@@ -69,7 +69,6 @@ class LSGANGeneratorDeconvBlock(nn.Module):
         if self.has_activation:
             out = self.activation(out)
 
-        print(out.shape)
         return out
 
 
@@ -107,7 +106,6 @@ class LSGANGeneratorFullyConnectedBlock(nn.Module):
         out = self.reshape2(out)
         out = self.batch_normalization(out)
         out = self.activation(out)
-        print(out.shape)
         return out
 
 
@@ -119,6 +117,7 @@ class LSGANGenerator(nn.Module):
         Outputs (X, 3, 64, 64) batch of generated images.
         """
         super().__init__()
+        self.in_features = in_features
 
         self.fully_connected = LSGANGeneratorFullyConnectedBlock(
             in_features=in_features,

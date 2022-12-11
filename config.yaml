@@ -3,12 +3,13 @@ data:
   test_data: "data/test/*.png"
   batch_size: 64
 train:
-  learning_rate: 0.001
+  learning_rate: 0.0002
   num_of_epochs: 1000
   val_data_percentage: 0.2
 generator:
   load_path: "saved_models/generator.pth"
   save_to: "saved_models/generator.pth" 
+  in_features: 100
 discriminator:
   load_path: "saved_models/discriminator.pth"
   save_to: "saved_models/discriminator.pth" 

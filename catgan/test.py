@@ -83,7 +83,7 @@ def test_step(
 
     # train discriminator on fake data
     labels.fill_(fake_label)
-    fake_batch = generator(batch_of_noise(b_size, device))
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
     loss_d_fake, pred = validate_model(
         discriminator,
         fake_batch.detach(),

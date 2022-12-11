@@ -27,7 +27,7 @@ class ModelConfig(BaseModel):
 class GeneratorConfig(ModelConfig):
     """GeneratorConfig."""
 
-    pass
+    in_features: int
 
 
 class DiscriminatorConfig(ModelConfig):

@@ -72,6 +72,35 @@ class LSGANDiscriminatorConvBlock(nn.Module):
         return out
 
 
+class LSGANDiscriminatorFullyConnectedBlock(nn.Module):
+    def __init__(self, in_shape: Tuple[int, int], out_features: int):
+        """Discriminator fully connected block
+        :param in_shape:
+        :type in_shape: Tuple[int]
+        :param out_features:
+        :type out_features: int
+        """
+        super().__init__()
+
+        self.reshape = lambda x: x.view(x.shape[0], in_shape[0] * in_shape[1])
+        self.linear = nn.Linear(
+            in_features=in_shape[0] * in_shape[1],
+            out_features=out_features,
+            bias=False,
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        """forward.
+
+        :param x:
+        :type x: Tensor
+        :rtype: Tensor
+        """
+        out = self.reshape(x)
+        out = self.linear(out)
+        return out
+
+
 class LSGANDiscriminator(nn.Module):
     """LSGANDiscriminator."""
 
@@ -82,25 +111,27 @@ class LSGANDiscriminator(nn.Module):
         """
         super().__init__()
 
-        self.conv1 = LSGANDiscriminatorConvBlock(
-            kernel_size=4,
-            in_channels=3,
-            out_channels=64,
-            stride=2,
-            padding=1,
-            batch_normalization=False,
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                kernel_size=5,
+                in_channels=3,
+                out_channels=64,
+                stride=2,
+                padding=4,
+            ),
+            nn.LeakyReLU(True),
         )
 
         self.conv2 = LSGANDiscriminatorConvBlock(
-            kernel_size=4,
+            kernel_size=5,
             in_channels=64,
             out_channels=128,
             stride=2,
-            padding=1,
+            padding=2,
         )
 
         self.conv3 = LSGANDiscriminatorConvBlock(
-            kernel_size=4,
+            kernel_size=5,
             in_channels=128,
             out_channels=256,
             stride=2,
@@ -108,19 +139,15 @@ class LSGANDiscriminator(nn.Module):
         )
 
         self.conv4 = LSGANDiscriminatorConvBlock(
-            kernel_size=4,
+            kernel_size=5,
             in_channels=256,
             out_channels=512,
             stride=2,
-            padding=1,
         )
 
-        self.conv5 = LSGANDiscriminatorConvBlock(
-            kernel_size=4,
-            in_channels=512,
-            out_channels=1,
-            stride=1,
-            padding=0,
+        self.fully_connected = LSGANDiscriminatorFullyConnectedBlock(
+            in_shape=(512, 4),
+            out_features=1,
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -134,7 +161,11 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
+<<<<<<< HEAD
         out = self.conv5(out)
+=======
+        out = self.fully_connected(out)
+>>>>>>> a2301fa (final models?)
         return out
 
 

@@ -6,7 +6,7 @@ import torch
 import torchvision.transforms as transforms
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
-from typing import Optional
+from typing import Optional, Union
 
 
 log = logging.getLogger(__name__)
@@ -17,7 +17,13 @@ transform = transforms.Compose(
 )
 
 
-def set_logging(root):
+def set_logging(root: logging.Logger) -> None:
+    """set_logging.
+
+    :param root:
+    :type root: logging.Logger
+    :rtype: None
+    """
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter(
@@ -41,15 +47,25 @@ def set_logging(root):
         root.addHandler(handler)
 
 
-def get_device():
-    """get_device."""
+def get_device() -> torch.device:
+    """get_device.
+
+    :rtype: torch.device
+    """
     if torch.cuda.is_available():
         return torch.device("cuda")
     return torch.device("cpu")
 
 
-def weights_init(model):
+def weights_init(model: Union[LSGANDiscriminator, LSGANGenerator]) -> None:
+    """weights_init.
+
+    :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
+    :rtype: None
+    """
     classname = model.__class__.__name__
+
     if "LSGAN" in classname:
         pass
     elif "Conv" in classname:
@@ -60,6 +76,12 @@ def weights_init(model):
 
 
 def load_generator(load_path: Optional[str]) -> LSGANGenerator:
+    """load_generator.
+
+    :param load_path:
+    :type load_path: Optional[str]
+    :rtype: LSGANGenerator
+    """
     model = LSGANGenerator()
     model.apply(weights_init)
 
@@ -77,6 +99,12 @@ def load_generator(load_path: Optional[str]) -> LSGANGenerator:
 
 
 def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
+    """load_discriminator.
+
+    :param load_path:
+    :type load_path: Optional[str]
+    :rtype: LSGANDiscriminator
+    """
     model = LSGANDiscriminator()
     model.apply(weights_init)
 
@@ -94,6 +122,13 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
 
 
 def save_model(model, path: str) -> None:
+    """save_model.
+
+    :param model:
+    :param path:
+    :type path: str
+    :rtype: None
+    """
     folder = os.path.join(*os.path.split(path)[:-1])
     os.makedirs(folder, exist_ok=True)
     torch.save(model.state_dict(), path)

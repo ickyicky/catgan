@@ -1,9 +1,12 @@
 import torch
+from torch import Tensor
 import torch.nn as nn
-from typing import Tuple
+from typing import Tuple, Union
 
 
 class LSGANGeneratorDeconvBlock(nn.Module):
+    """LSGANGeneratorDeconvBlock."""
+
     def __init__(
         self,
         in_channels: int,
@@ -26,6 +29,12 @@ class LSGANGeneratorDeconvBlock(nn.Module):
         :type kernel_size: int
         :param stride:
         :type stride: int
+        :param padding:
+        :type padding: int
+        :param batch_normalization:
+        :type batch_normalization: bool
+        :param activation:
+        :type activation: bool
         """
         super().__init__()
 
@@ -45,10 +54,12 @@ class LSGANGeneratorDeconvBlock(nn.Module):
         if self.has_activation:
             self.activation = nn.ReLU(True)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """forward.
 
         :param x:
+        :type x: Tensor
+        :rtype: Tensor
         """
         out = self.deconv(x)
 
@@ -113,10 +124,12 @@ class LSGANGenerator(nn.Module):
 
         self.tanh = nn.Tanh()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """forward.
 
         :param x:
+        :type x: Tensor
+        :rtype: Tensor
         """
         out = self.deconv1(x)
         out = self.deconv2(out)

@@ -1,8 +1,10 @@
 import torch
 from torch.utils.data.dataloader import DataLoader
+from torch import Tensor
 from tqdm import tqdm
 import wandb
 import logging
+from typing import Tuple
 from .train import validate_model, batch_of_noise
 from .wandb import log as wandblog
 from .config import Config
@@ -17,20 +19,55 @@ log.setLevel(logging.DEBUG)
 
 
 def test_step(
-    generator,
-    generator_criterion,
-    discriminator,
-    discriminator_criterion,
-    batch,
-    device,
-    real_label,
-    fake_label,
-    generator_fake_label,
-):
+    generator: LSGANGenerator,
+    generator_criterion: torch.nn.MSELoss,
+    discriminator: LSGANDiscriminator,
+    discriminator_criterion: torch.nn.MSELoss,
+    batch: Tensor,
+    device: torch.device,
+    real_label: int,
+    fake_label: int,
+    generator_fake_label: int,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, int, int]:
+    """test_step.
+
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
+    :param batch:
+    :type batch: Tensor
+    :param device:
+    :type device: torch.device
+    :param real_label:
+    :type real_label: int
+    :param fake_label:
+    :type fake_label: int
+    :param generator_fake_label:
+    :type generator_fake_label: int
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, int, int]
+    """
     # create labels
     b_size = batch.size(0)
     total_count = 3 * b_size
     correct = 0
+
+    def update_correct(pred: Tensor, labels: Tensor) -> None:
+        """update_correct.
+
+        :param pred:
+        :type pred: Tensor
+        :param labels:
+        :type labels: Tensor
+        :rtype: None
+        """
+        _, actual_pred = torch.max(pred.data, 0)
+        _, actual_labels = torch.max(labels.data, 0)
+        correct += (actual_pred == actual_labels).sum().item()
 
     labels = torch.full((b_size,), real_label, dtype=torch.float)
 
@@ -42,9 +79,7 @@ def test_step(
         discriminator_criterion,
         device,
     )
-    _, actual_pred = torch.max(pred.data, 0)
-    _, actual_labels = torch.max(labels.data, 0)
-    correct += (actual_pred == actual_labels).sum().item()
+    update_correct(pred, labels)
 
     # train discriminator on fake data
     labels.fill_(fake_label)
@@ -56,9 +91,7 @@ def test_step(
         discriminator_criterion,
         device,
     )
-    _, actual_pred = torch.max(pred.data, 0)
-    _, actual_labels = torch.max(labels.data, 0)
-    correct += (actual_pred == actual_labels).sum().item()
+    update_correct(pred, labels)
 
     # train generator with trained discriminator
     labels.fill_(generator_fake_label)
@@ -69,24 +102,44 @@ def test_step(
         generator_criterion,
         device,
     )
-    _, actual_pred = torch.max(pred.data, 0)
-    _, actual_labels = torch.max(labels.data, 0)
-    correct += (actual_pred == actual_labels).sum().item()
+    update_correct(pred, labels)
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, pred, total_count, correct
 
 
 def test(
-    test_data,
-    generator,
-    generator_criterion,
-    discriminator,
-    discriminator_criterion,
-    device,
-    real_label,
-    fake_label,
-    generator_fake_label,
-):
+    test_data: Tensor,
+    generator: LSGANGenerator,
+    generator_criterion: torch.nn.MSELoss,
+    discriminator: LSGANDiscriminator,
+    discriminator_criterion: torch.nn.MSELoss,
+    device: torch.device,
+    real_label: int,
+    fake_label: int,
+    generator_fake_label: int,
+) -> None:
+    """test.
+
+    :param test_data:
+    :type test_data: Tensor
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
+    :param device:
+    :type device: torch.device
+    :param real_label:
+    :type real_label: int
+    :param fake_label:
+    :type fake_label: int
+    :param generator_fake_label:
+    :type generator_fake_label: int
+    :rtype: None
+    """
     losses = {
         "test_d_real": [],
         "test_d_fake": [],
@@ -160,7 +213,17 @@ def test_main(
     generator: LSGANGenerator,
     discriminator: LSGANDiscriminator,
     config: Config,
-):
+) -> None:
+    """test_main.
+
+    :param generator:
+    :type generator: LSGANGenerator
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param config:
+    :type config: Config
+    :rtype: None
+    """
     dataset = CatsDataset(config.data.test_data, transform)
     data_loader = DataLoader(dataset, batch_size=config.data.batch_size)
 

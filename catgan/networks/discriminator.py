@@ -1,9 +1,12 @@
 import torch
+from torch import Tensor
 import torch.nn as nn
 from typing import Tuple
 
 
 class LSGANDiscriminatorConvBlock(nn.Module):
+    """LSGANDiscriminatorConvBlock."""
+
     def __init__(
         self,
         in_channels: int,
@@ -28,7 +31,10 @@ class LSGANDiscriminatorConvBlock(nn.Module):
         :type stride: int
         :param padding:
         :type padding: int
-        :param out_padding:
+        :param batch_normalization:
+        :type batch_normalization: bool
+        :param activation:
+        :type activation: bool
         """
         super().__init__()
 
@@ -48,10 +54,12 @@ class LSGANDiscriminatorConvBlock(nn.Module):
         if self.has_activation:
             self.activation = nn.ReLU(True)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """forward.
 
         :param x:
+        :type x: Tensor
+        :rtype: Tensor
         """
         out = self.conv(x)
 
@@ -65,6 +73,8 @@ class LSGANDiscriminatorConvBlock(nn.Module):
 
 
 class LSGANDiscriminator(nn.Module):
+    """LSGANDiscriminator."""
+
     def __init__(self):
         """Discriminator network.
 
@@ -115,10 +125,12 @@ class LSGANDiscriminator(nn.Module):
 
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """forward.
 
         :param x:
+        :type x: Tensor
+        :rtype: Tensor
         """
         out = self.conv1(x)
         out = self.conv2(out)

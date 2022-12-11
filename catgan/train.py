@@ -1,10 +1,12 @@
 import wandb
 import torch
+from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import random_split
 import torch.optim as optim
 from tqdm import tqdm
 import logging
+from typing import Union, Tuple
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from .utils import transform, get_device
@@ -17,48 +19,76 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def batch_of_noise(b_size: int, device):
+def batch_of_noise(b_size: int, device: torch.device) -> Tensor:
     """batch_of_noise.
 
     :param b_size:
     :type b_size: int
     :param device:
+    :type device: torch.device
     """
     return torch.randn(b_size, 100, 1, 1, device=device)
 
 
-def common_compute(model, batch, device):
+def common_compute(
+    model: Union[LSGANDiscriminator, LSGANGenerator],
+    batch: Tensor,
+    device: torch.device,
+) -> Tensor:
     """common_compute.
 
     :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
     :param batch:
+    :type batch: Tensor
     :param device:
+    :type device: torch.device
+    :rtype: Tensor
     """
     batch = batch.to(device)
     result = model(batch).view(-1)
     return result
 
 
-def calculate_loss(result, label, criterion, device):
+def calculate_loss(
+    result: Tensor, label: Tensor, criterion: torch.nn.MSELoss, device: torch.device
+) -> Tensor:
     """calculate_loss.
 
     :param result:
+    :type result: Tensor
     :param label:
+    :type label: Tensor
     :param criterion:
+    :type criterion: torch.nn.MSELoss
     :param device:
+    :type device: torch.device
+    :rtype: Tensor
     """
     label = label.to(device)
     return criterion(result, label)
 
 
-def train_model(model, batch, label, criterion, device):
-    """train_batch.
+def train_model(
+    model: Union[LSGANDiscriminator, LSGANGenerator],
+    batch: Tensor,
+    label: Tensor,
+    criterion: torch.nn.MSELoss,
+    device: torch.device,
+) -> Tensor:
+    """train_model.
 
     :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
     :param batch:
+    :type batch: Tensor
     :param label:
+    :type label: Tensor
     :param criterion:
+    :type criterion: torch.nn.MSELoss
     :param device:
+    :type device: torch.device
+    :rtype: Tensor
     """
     result = common_compute(model, batch, device)
     loss = calculate_loss(result, label, criterion, device)
@@ -66,14 +96,26 @@ def train_model(model, batch, label, criterion, device):
     return loss
 
 
-def validate_model(model, batch, label, criterion, device):
-    """train_batch.
+def validate_model(
+    model: Union[LSGANDiscriminator, LSGANGenerator],
+    batch: Tensor,
+    label: Tensor,
+    criterion: torch.nn.MSELoss,
+    device: torch.device,
+) -> Tuple[Tensor, Tensor]:
+    """validate_model.
 
     :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
     :param batch:
+    :type batch: Tensor
     :param label:
+    :type label: Tensor
     :param criterion:
+    :type criterion: torch.nn.MSELoss
     :param device:
+    :type device: torch.device
+    :rtype: Tuple[Tensor, Tensor]
     """
     result = common_compute(model, batch, device)
     loss = calculate_loss(result, label, criterion, device)
@@ -81,31 +123,43 @@ def validate_model(model, batch, label, criterion, device):
 
 
 def train_step(
-    generator,
-    generator_optimizer,
-    generator_criterion,
-    discriminator,
-    discriminator_optimizer,
-    discriminator_criterion,
-    batch,
-    device,
-    real_label,
-    fake_label,
-    generator_fake_label,
-):
+    generator: LSGANGenerator,
+    generator_optimizer: optim.Adam,
+    generator_criterion: torch.nn.MSELoss,
+    discriminator: LSGANDiscriminator,
+    discriminator_optimizer: optim.Adam,
+    discriminator_criterion: torch.nn.MSELoss,
+    batch: Tensor,
+    device: torch.device,
+    real_label: int,
+    fake_label: int,
+    generator_fake_label: int,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     """train_step.
 
     :param generator:
+    :type generator: LSGANGenerator
     :param generator_optimizer:
+    :type generator_optimizer: optim.Adam
     :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
     :param discriminator:
+    :type discriminator: LSGANDiscriminator
     :param discriminator_optimizer:
+    :type discriminator_optimizer: optim.Adam
     :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
     :param batch:
+    :type batch: Tensor
     :param device:
+    :type device: torch.device
     :param real_label:
+    :type real_label: int
     :param fake_label:
+    :type fake_label: int
     :param generator_fake_label:
+    :type generator_fake_label: int
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
     """
     # create labels
     b_size = batch.size(0)
@@ -149,16 +203,38 @@ def train_step(
 
 
 def validate_step(
-    generator,
-    generator_criterion,
-    discriminator,
-    discriminator_criterion,
-    batch,
-    device,
-    real_label,
-    fake_label,
-    generator_fake_label,
-):
+    generator: LSGANGenerator,
+    generator_criterion: torch.nn.MSELoss,
+    discriminator: LSGANDiscriminator,
+    discriminator_criterion: torch.nn.MSELoss,
+    batch: Tensor,
+    device: torch.device,
+    real_label: int,
+    fake_label: int,
+    generator_fake_label: int,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    """validate_step.
+
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
+    :param batch:
+    :type batch: Tensor
+    :param device:
+    :type device: torch.device
+    :param real_label:
+    :type real_label: int
+    :param fake_label:
+    :type fake_label: int
+    :param generator_fake_label:
+    :type generator_fake_label: int
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor]
+    """
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), real_label, dtype=torch.float)
@@ -197,20 +273,50 @@ def validate_step(
 
 
 def train(
-    train_data,
-    validate_data,
-    num_of_epochs,
-    generator,
-    generator_optimizer,
-    generator_criterion,
-    discriminator,
-    discriminator_optimizer,
-    discriminator_criterion,
-    device,
-    real_label,
-    fake_label,
-    generator_fake_label,
-):
+    train_data: Tensor,
+    validate_data: Tensor,
+    num_of_epochs: int,
+    generator: LSGANGenerator,
+    generator_optimizer: optim.Adam,
+    generator_criterion: torch.nn.BCELoss,
+    discriminator: LSGANDiscriminator,
+    discriminator_optimizer: optim.Adam,
+    discriminator_criterion: torch.nn.BCELoss,
+    device: torch.device,
+    real_label: int,
+    fake_label: int,
+    generator_fake_label: int,
+) -> None:
+    """train.
+
+    :param train_data:
+    :type train_data: Tensor
+    :param validate_data:
+    :type validate_data: Tensor
+    :param num_of_epochs:
+    :type num_of_epochs: int
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_optimizer:
+    :type generator_optimizer: optim.Adam
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.BCELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_optimizer:
+    :type discriminator_optimizer: optim.Adam
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.BCELoss
+    :param device:
+    :type device: torch.device
+    :param real_label:
+    :type real_label: int
+    :param fake_label:
+    :type fake_label: int
+    :param generator_fake_label:
+    :type generator_fake_label: int
+    :rtype: None
+    """
     for epoch in range(num_of_epochs):
         generator.train()
         discriminator.train()
@@ -309,7 +415,7 @@ def train_main(
     generator: LSGANGenerator,
     discriminator: LSGANDiscriminator,
     config: Config,
-):
+) -> None:
     """train_main.
 
     :param generator:
@@ -318,6 +424,7 @@ def train_main(
     :type discriminator: LSGANDiscriminator
     :param config:
     :type config: Config
+    :rtype: None
     """
     dataset = CatsDataset(config.data.train_data, transform)
     val_data_size = int(config.train.val_data_percentage * len(dataset))

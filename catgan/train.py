@@ -19,15 +19,18 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def batch_of_noise(b_size: int, device: torch.device) -> Tensor:
+def batch_of_noise(b_size: int, in_features: int, device: torch.device) -> Tensor:
     """batch_of_noise.
 
     :param b_size:
     :type b_size: int
+    :param in_features:
+    :type in_features: int
     :param device:
     :type device: torch.device
+    :rtype: Tensor
     """
-    return torch.randn(b_size, 100, 1, 1, device=device)
+    return torch.randn(b_size, in_features, 1, 1, device=device)
 
 
 def common_compute(
@@ -250,7 +253,7 @@ def validate_step(
 
     # train discriminator on fake data
     labels.fill_(fake_label)
-    fake_batch = generator(batch_of_noise(b_size, device))
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
     loss_d_fake, _ = validate_model(
         discriminator,
         fake_batch.detach(),

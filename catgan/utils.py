@@ -75,14 +75,16 @@ def weights_init(model: Union[LSGANDiscriminator, LSGANGenerator]) -> None:
         torch.nn.init.constant_(model.bias.data, 0)
 
 
-def load_generator(load_path: Optional[str]) -> LSGANGenerator:
+def load_generator(load_path: Optional[str], in_features: int) -> LSGANGenerator:
     """load_generator.
 
     :param load_path:
     :type load_path: Optional[str]
+    :param in_features:
+    :type in_features: int
     :rtype: LSGANGenerator
     """
-    model = LSGANGenerator()
+    model = LSGANGenerator(in_features)
     model.apply(weights_init)
 
     if load_path is not None:

@@ -1,0 +1,6 @@
+torch
+pytorchvision
+pydantic
+Pillow
+wandb
+tqdm

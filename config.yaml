@@ -3,7 +3,7 @@ data:
   test_data: "data/test/*.png"
   batch_size: 8
 train:
-  gen_learning_rate: 0.0001
+  gen_learning_rate: 0.0002
   dis_learning_rate: 0.00005
   gen_min_loss: -1.0
   dis_min_loss: 0.25

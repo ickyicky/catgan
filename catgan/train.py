@@ -169,7 +169,6 @@ def train_step(
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), real_label, dtype=torch.float)
-    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
     loss_g = loss_d_real = loss_d_fake = None
 
     if train_discriminator:
@@ -185,6 +184,7 @@ def train_step(
 
         # train discriminator on fake data
         labels.fill_(fake_label)
+        fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
         loss_d_fake = train_model(
             model=discriminator,
             batch=fake_batch.detach(),
@@ -197,6 +197,7 @@ def train_step(
     if train_generator:
         # train generator with trained discriminator
         generator_optimizer.zero_grad()
+        fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
         labels.fill_(generator_fake_label)
         loss_g = train_model(
             model=discriminator,

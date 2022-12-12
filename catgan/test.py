@@ -192,7 +192,7 @@ def test(
                 fake = fake.to(cpu)
                 pred = pred.to(cpu)
                 examples = [
-                    wandb.Image(img, caption="Pred: {val}")
+                    wandb.Image(img, caption=f"Pred: {val}")
                     for img, val in zip(fake, pred)
                 ]
 

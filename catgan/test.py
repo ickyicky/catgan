@@ -80,9 +80,9 @@ def test(
                 batch,
             )
 
-            losses["valid_d_real"].append(loss_d_real)
-            losses["valid_d_fake"].append(loss_d_fake)
-            losses["valid_g"].append(loss_g)
+            losses["test_d_real"].append(loss_d_real)
+            losses["test_d_fake"].append(loss_d_fake)
+            losses["test_g"].append(loss_g)
 
             # only log last validation batch to wandb, no need to spam it with images
             if i == last_batch_num:

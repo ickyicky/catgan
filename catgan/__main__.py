@@ -55,8 +55,6 @@ if __name__ == "__main__":
         save_model(generator, config.generator.save_to)
         save_model(discriminator, config.discriminator.save_to)
 
-        test_main(generator, discriminator, config)
-
     if args.test:
         set_logging(log)
 

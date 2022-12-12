@@ -73,48 +73,45 @@ def train_step(
     discriminator_optimizer: optim.Adam,
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
-    train_generator: bool,
-    train_discriminator: bool,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     loss_g = loss_d_real = loss_d_fake = None
 
-    if train_generator:
-        # train generator with trained discriminator
-        generator_optimizer.zero_grad()
-        fake_batch = generator(batch_of_noise(b_size, generator.in_features))
-        labels.fill_(CONFIG.generator_fake_label)
-        loss_g = train_model(
-            model=discriminator,
-            batch=fake_batch,
-            label=labels,
-            criterion=generator_criterion,
-        )
+    # train generator with trained discriminator
+    generator_optimizer.zero_grad()
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features))
+    labels.fill_(CONFIG.generator_fake_label)
+    loss_g = train_model(
+        model=discriminator,
+        batch=fake_batch,
+        label=labels,
+        criterion=generator_criterion,
+    )
+    if loss_g > config.train.gen_min_loss:
         generator_optimizer.step()
 
-    if train_discriminator:
-        # train discriminator on real data
-        discriminator_optimizer.zero_grad()
-        loss_d_real = train_model(
-            model=discriminator,
-            batch=batch,
-            label=labels,
-            criterion=discriminator_criterion,
-        )
+    # train discriminator on real data
+    discriminator_optimizer.zero_grad()
+    loss_d_real = train_model(
+        model=discriminator,
+        batch=batch,
+        label=labels,
+        criterion=discriminator_criterion,
+    )
 
-        # train discriminator on fake data
-        labels.fill_(CONFIG.fake_label)
-        fake_batch = generator(batch_of_noise(b_size, generator.in_features))
-        loss_d_fake = train_model(
-            model=discriminator,
-            batch=fake_batch.detach(),
-            label=labels,
-            criterion=discriminator_criterion,
-        )
+    # train discriminator on fake data
+    labels.fill_(CONFIG.fake_label)
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features))
+    loss_d_fake = train_model(
+        model=discriminator,
+        batch=fake_batch.detach(),
+        label=labels,
+        criterion=discriminator_criterion,
+    )
+    if torch.stack([loss_d_real, loss_d_fake]).mean() > config.train.dis_min_loss:
         discriminator_optimizer.step()
-
 
     return loss_d_real, loss_d_fake, loss_g
 
@@ -125,7 +122,7 @@ def validate_step(
     discriminator: LSGANDiscriminator,
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
-) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
@@ -141,7 +138,7 @@ def validate_step(
 
     # train discriminator on fake data
     labels.fill_(CONFIG.fake_label)
-    loss_d_fake, _ = validate_model(
+    loss_d_fake, d_pred = validate_model(
         model=discriminator,
         batch=fake_batch.detach(),
         label=labels,
@@ -150,14 +147,14 @@ def validate_step(
 
     # train generator with trained discriminator
     labels.fill_(CONFIG.generator_fake_label)
-    loss_g, pred = validate_model(
+    loss_g, g_pred = validate_model(
         model=discriminator,
         batch=fake_batch,
         label=labels,
         criterion=generator_criterion,
     )
 
-    return loss_d_real, loss_d_fake, loss_g, fake_batch, pred
+    return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred
 
 
 def train(
@@ -170,9 +167,6 @@ def train(
     discriminator_optimizer: optim.Adam,
     discriminator_criterion: torch.nn.BCELoss,
 ) -> None:
-    last_d_loss = None
-    last_g_loss = None
-
     generator.train()
     discriminator.train()
 
@@ -209,32 +203,30 @@ def train(
             discriminator_optimizer,
             discriminator_criterion,
             batch,
-            train_discriminator=True
-            if last_d_loss is None
-            else last_d_loss > CONFIG.train.dis_min_loss,
-            train_generator=True
-            if last_g_loss is None
-            else last_g_loss > CONFIG.train.gen_min_loss,
         )
 
-        if loss_d_fake is not None and loss_d_real is not None:
-            losses["train_d_real"].append(loss_d_real)
-            losses["train_d_fake"].append(loss_d_fake)
-
-        if loss_g is not None:
-            losses["train_g"].append(loss_g)
+        losses["train_d_real"].append(loss_d_real)
+        losses["train_d_fake"].append(loss_d_fake)
+        losses["train_g"].append(loss_g)
 
         if epoch > 0 and epoch % CONFIG.train.epochs_between_val == 0:
             generator.eval()
             discriminator.eval()
-            examples = None
+            examples = {}
 
             with torch.no_grad():
                 bar = tqdm(validate_data, position=0, leave=False, desc=f"VALIDATE")
                 last_batch_num = len(bar) - 1
 
                 for i, batch in enumerate(bar):
-                    loss_d_real, loss_d_fake, loss_g, fake, pred = validate_step(
+                    (
+                        loss_d_real,
+                        loss_d_fake,
+                        loss_g,
+                        fake,
+                        d_pred,
+                        g_pred,
+                    ) = validate_step(
                         generator,
                         generator_criterion,
                         discriminator,
@@ -249,15 +241,13 @@ def train(
                     # only log last validation batch to wandb, no need to spam it with images
                     if i == last_batch_num:
                         cpu = torch.device("cpu")
-                        fake = fake.to(cpu)
-                        pred = pred.to(cpu)
-                        batch = batch.to(cpu)
-                        examples = [
+                        examples["fake"] = [
                             wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(fake[:3], pred[:3])
+                            for img, val in zip(fake.to(cpu)[:3], g_pred.to(cpu)[:3])
                         ]
-                        examples += [
-                            wandb.Image(img, caption="real") for img in batch[:3]
+                        examples["real"] = [
+                            wandb.Image(img, caption=f"Pred: {val}")
+                            for img, val in zip(batch.to(cpu)[:3], d_pred.to(cpu)[:3])
                         ]
 
             avg_losses = {
@@ -266,11 +256,8 @@ def train(
                 if val
             }
 
-            last_d_loss = (avg_losses["valid_d_real"] + avg_losses["valid_d_fake"]) / 2
-            last_g_loss = avg_losses["valid_g"]
-
-            log.debug(f"Epoch: {epoch}/{CONFIG.train.num_of_epochs}")
-            log.debug(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
+            log.info(f"Epoch: {epoch}/{CONFIG.train.num_of_epochs}")
+            log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
             wandb_log = {
                 "epoch": epoch,
                 "learning_rate": {

@@ -208,17 +208,17 @@ def validate_step(
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     fake_batch = generator(batch_of_noise(b_size, generator.in_features))
 
-    # train discriminator on real data
-    loss_d_real, _ = validate_model(
+    # validate discriminator on real data
+    loss_d_real, d_pred = validate_model(
         model=discriminator,
         batch=batch,
         label=labels,
         criterion=discriminator_criterion,
     )
 
-    # train discriminator on fake data
+    # validate discriminator on fake data
     labels = torch.full((b_size,), CONFIG.fake_label, dtype=torch.float)
-    loss_d_fake, d_pred = validate_model(
+    loss_d_fake, _ = validate_model(
         model=discriminator,
         batch=fake_batch.detach(),
         label=labels,
@@ -226,7 +226,7 @@ def validate_step(
     )
     d_pred = torch.clone(d_pred.cpu())
 
-    # train generator with trained discriminator
+    # validate generator with trained discriminator
     labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
     loss_g, g_pred = validate_model(
         model=discriminator,

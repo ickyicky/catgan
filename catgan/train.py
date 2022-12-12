@@ -269,18 +269,16 @@ def train(
     :type discriminator_criterion: torch.nn.BCELoss
     :rtype: None
     """
-    generator.train()
-    discriminator.train()
-
     batch_iterator = iter(train_data)
 
     epochs = tqdm(
         range(CONFIG.train.num_of_epochs),
         position=0,
-        leave=False,
         desc="TRAIN",
     )
     for epoch in epochs:
+        generator.train()
+        discriminator.train()
 
         losses = {
             "train_d_real": [],
@@ -291,89 +289,82 @@ def train(
             "valid_g": [],
         }
 
-        try:
-            batch = next(batch_iterator)
-        except StopIteration:
-            batch_iterator = iter(train_data)
-            batch = next(batch_iterator)
+        for _ in tqdm(range(CONFIG.train.steps_per_epoch), desc="STEP ", leave=False):
+            try:
+                batch = next(batch_iterator)
+            except StopIteration:
+                batch_iterator = iter(train_data)
+                batch = next(batch_iterator)
 
-        loss_d_real, loss_d_fake, loss_g = train_step(
-            generator,
-            generator_optimizer,
-            generator_criterion,
-            discriminator,
-            discriminator_optimizer,
-            discriminator_criterion,
-            batch,
-        )
-
-        losses["train_d_real"].append(loss_d_real)
-        losses["train_d_fake"].append(loss_d_fake)
-        losses["train_g"].append(loss_g)
-
-        if epoch > 0 and epoch % CONFIG.train.epochs_between_val == 0:
-            generator.eval()
-            discriminator.eval()
-            examples = {}
-
-            with torch.no_grad():
-                bar = tqdm(validate_data, position=0, leave=False, desc=f"VALIDATE")
-                last_batch_num = len(bar) - 1
-
-                for i, batch in enumerate(bar):
-                    (
-                        loss_d_real,
-                        loss_d_fake,
-                        loss_g,
-                        fake,
-                        d_pred,
-                        g_pred,
-                    ) = validate_step(
-                        generator,
-                        generator_criterion,
-                        discriminator,
-                        discriminator_criterion,
-                        batch,
-                    )
-
-                    losses["valid_d_real"].append(loss_d_real)
-                    losses["valid_d_fake"].append(loss_d_fake)
-                    losses["valid_g"].append(loss_g)
-
-                    # only log last validation batch to wandb, no need to spam it with images
-                    if i == last_batch_num:
-                        examples["fake"] = [
-                            wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(fake.cpu()[:3], g_pred[:3])
-                        ]
-                        examples["real"] = [
-                            wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(batch.cpu()[:3], d_pred[:3])
-                        ]
-
-            avg_losses = {
-                key: float(torch.stack(val).mean())
-                for key, val in losses.items()
-                if val
-            }
-
-            log.info(f"Epoch: {epoch}/{CONFIG.train.num_of_epochs}")
-            log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
-            wandb_log = {
-                "epoch": epoch,
-                "learning_rate": {
-                    "generator": generator_optimizer.param_groups[0]["lr"],
-                    "discriminator": discriminator_optimizer.param_groups[0]["lr"],
-                },
-                "images": examples,
-                "error": avg_losses,
-            }
-            wandblog(wandb_log)
-
-            epochs.set_description(
-                "TRAIN:"
-                + ", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items())
+            loss_d_real, loss_d_fake, loss_g = train_step(
+                generator,
+                generator_optimizer,
+                generator_criterion,
+                discriminator,
+                discriminator_optimizer,
+                discriminator_criterion,
+                batch,
             )
+
+            losses["train_d_real"].append(loss_d_real)
+            losses["train_d_fake"].append(loss_d_fake)
+            losses["train_g"].append(loss_g)
+
+        generator.eval()
+        discriminator.eval()
+        examples = {}
+
+        with torch.no_grad():
+            bar = tqdm(validate_data, leave=False, desc="VALID")
+            last_batch_num = len(bar) - 1
+
+            for i, batch in enumerate(bar):
+                (
+                    loss_d_real,
+                    loss_d_fake,
+                    loss_g,
+                    fake,
+                    d_pred,
+                    g_pred,
+                ) = validate_step(
+                    generator,
+                    generator_criterion,
+                    discriminator,
+                    discriminator_criterion,
+                    batch,
+                )
+
+                losses["valid_d_real"].append(loss_d_real)
+                losses["valid_d_fake"].append(loss_d_fake)
+                losses["valid_g"].append(loss_g)
+
+                # only log last validation batch to wandb, no need to spam it with images
+                if i == last_batch_num:
+                    examples["fake"] = [
+                        wandb.Image(img, caption=f"Pred: {val}")
+                        for img, val in zip(fake.cpu()[:3], g_pred[:3])
+                    ]
+                    examples["real"] = [
+                        wandb.Image(img, caption=f"Pred: {val}")
+                        for img, val in zip(batch.cpu()[:3], d_pred[:3])
+                    ]
+
+        avg_losses = {
+            key: float(torch.stack(val).mean()) for key, val in losses.items() if val
+        }
+
+        log.info(f"Epoch: {epoch}/{CONFIG.train.num_of_epochs}")
+        log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
+        wandb_log = {
+            "epoch": epoch,
+            "learning_rate": {
+                "generator": generator_optimizer.param_groups[0]["lr"],
+                "discriminator": discriminator_optimizer.param_groups[0]["lr"],
+            },
+            "images": examples,
+            "error": avg_losses,
+        }
+        wandblog(wandb_log)
 
 
 def train_main(

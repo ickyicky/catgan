@@ -1,21 +1,21 @@
 data:
   train_data: "data/train/*.png"
   test_data: "data/test/*.png"
-  batch_size: 8
+  batch_size: 64
 train:
-  gen_learning_rate: 0.00001
+  gen_learning_rate: 0.00002
   dis_learning_rate: 0.000001
   gen_min_loss: -1.0
   dis_min_loss: -1.0
-  num_of_epochs: 50000
-  epochs_between_val: 500
+  num_of_epochs: 1000
+  steps_per_epoch: 200
 generator:
   load_path: "saved_models/generator.pth"
   save_to: "saved_models/generator.pth" 
-  in_features: 100
+  in_features: 1000
 discriminator:
   load_path: "saved_models/discriminator.pth"
   save_to: "saved_models/discriminator.pth" 
-real_label: 0.9
-fake_label: 0.09
-generator_fake_label: 0.9
+real_label: 0.99
+fake_label: 0.01
+generator_fake_label: 0.99

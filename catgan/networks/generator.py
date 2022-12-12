@@ -136,6 +136,14 @@ class LSGANGenerator(nn.Module):
         )
 
         self.deconv3 = LSGANGeneratorDeconvBlock(
+            kernel_size=3,
+            in_channels=512,
+            out_channels=512,
+            stride=1,
+            padding=1,
+        )
+
+        self.deconv4 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
             in_channels=512,
             out_channels=256,
@@ -143,7 +151,15 @@ class LSGANGenerator(nn.Module):
             padding=1,
         )
 
-        self.deconv4 = LSGANGeneratorDeconvBlock(
+        self.deconv5 = LSGANGeneratorDeconvBlock(
+            kernel_size=3,
+            in_channels=256,
+            out_channels=256,
+            stride=1,
+            padding=1,
+        )
+
+        self.deconv6 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
             in_channels=256,
             out_channels=128,
@@ -151,7 +167,15 @@ class LSGANGenerator(nn.Module):
             padding=1,
         )
 
-        self.deconv5 = LSGANGeneratorDeconvBlock(
+        self.deconv7 = LSGANGeneratorDeconvBlock(
+            kernel_size=3,
+            in_channels=128,
+            out_channels=128,
+            stride=1,
+            padding=1,
+        )
+
+        self.deconv8 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
             in_channels=128,
             out_channels=3,
@@ -165,7 +189,6 @@ class LSGANGenerator(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """forward.
-
         :param x:
         :type x: Tensor
         :rtype: Tensor
@@ -175,12 +198,15 @@ class LSGANGenerator(nn.Module):
         out = self.deconv3(out)
         out = self.deconv4(out)
         out = self.deconv5(out)
+        out = self.deconv6(out)
+        out = self.deconv7(out)
+        out = self.deconv8(out)
         out = self.tanh(out)
         return out
 
 
 if __name__ == "__main__":
-    net = LSGANGenerator(100)
-    noise = torch.randn(1, 100, 1, 1)
+    net = LSGANGenerator(1000)
+    noise = torch.randn(1, 1000, 1, 1)
     out = net(noise)
     print(out.shape)

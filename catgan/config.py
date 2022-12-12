@@ -17,7 +17,7 @@ class TrainConfig(BaseModel):
     dis_min_loss: float
     gen_min_loss: float
     num_of_epochs: int
-    epochs_between_val: int
+    steps_per_epoch: int
 
 
 class ModelConfig(BaseModel):

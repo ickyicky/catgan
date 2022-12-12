@@ -392,10 +392,12 @@ def train(
                     cpu = torch.device("cpu")
                     fake = fake.to(cpu)
                     pred = pred.to(cpu)
+                    batch = batch.to(cpu)
                     examples = [
                         wandb.Image(img, caption=f"Pred: {val}")
-                        for img, val in zip(fake, pred)
+                        for img, val in zip(fake[:3], pred[:3])
                     ]
+                    examples += [wandb.Image(img, caption="real") for img in batch[:3]]
 
         avg_losses = {
             key: float(torch.stack(val).mean()) for key, val in losses.items()
@@ -434,8 +436,20 @@ def train_main(
     train_data, val_data = random_split(
         dataset, [len(dataset) - val_data_size, val_data_size]
     )
-    train_data_loader = DataLoader(train_data, batch_size=config.data.batch_size)
-    val_data_loader = DataLoader(val_data, batch_size=config.data.batch_size)
+    train_data_loader = DataLoader(
+        train_data,
+        batch_size=config.data.batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=4,
+    )
+    val_data_loader = DataLoader(
+        val_data,
+        batch_size=config.data.batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=4,
+    )
 
     generator_optimizer = optim.Adam(
         generator.parameters(), lr=config.train.gen_learning_rate

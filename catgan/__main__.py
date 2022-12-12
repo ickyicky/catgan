@@ -5,6 +5,7 @@ from .utils import load_discriminator, load_generator, set_logging, save_model
 from .train import train_main
 from .test import test_main
 from .config import Config
+from .generate import generate
 from .wandb import init
 
 
@@ -67,3 +68,9 @@ if __name__ == "__main__":
         )
 
         test_main(generator, discriminator, config)
+
+    if args.generate:
+        generator = load_generator(
+            config.generator.load_path, config.generator.in_features
+        )
+        generate(generator)

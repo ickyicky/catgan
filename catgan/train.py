@@ -33,7 +33,16 @@ def configure(config: Config) -> None:
 
 
 def batch_of_noise(b_size: int, in_features: int) -> Tensor:
-    return torch.randn(b_size, in_features, 1, 1, device=get_device())
+    return (
+        torch.FloatTensor(
+            b_size,
+            in_features,
+            1,
+            1,
+        )
+        .normal_(0, 1)
+        .to(get_device())
+    )
 
 
 def common_compute(
@@ -91,7 +100,7 @@ def train_model(
     result = common_compute(model, batch)
     loss = calculate_loss(result, label, criterion)
     loss.backward()
-    return loss
+    return loss.item()
 
 
 def validate_model(
@@ -114,7 +123,7 @@ def validate_model(
     """
     result = common_compute(model, batch)
     loss = calculate_loss(result, label, criterion)
-    return loss, result
+    return loss.item(), result
 
 
 def train_step(
@@ -146,8 +155,30 @@ def train_step(
     """
     b_size = batch.size(0)
 
-    # train generator with trained discriminator
-    generator_optimizer.zero_grad()
+    # perform discriminator training on real data
+    discriminator.zero_grad()
+    labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
+    loss_d_real = train_model(
+        model=discriminator,
+        batch=batch,
+        label=labels,
+        criterion=discriminator_criterion,
+    )
+    discriminator_optimizer.step()
+
+    # perform discriminator training on fake data
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features))
+    labels = torch.full((b_size,), CONFIG.fake_label, dtype=torch.float)
+    loss_d_fake = train_model(
+        model=discriminator,
+        batch=fake_batch.detach(),
+        label=labels,
+        criterion=discriminator_criterion,
+    )
+    discriminator_optimizer.step()
+
+    # train generator
+    generator.zero_grad()
     fake_batch = generator(batch_of_noise(b_size, generator.in_features))
     labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
     loss_g = train_model(
@@ -156,30 +187,8 @@ def train_step(
         label=labels,
         criterion=generator_criterion,
     )
-    if loss_g > CONFIG.train.gen_min_loss:
-        generator_optimizer.step()
 
-    # train discriminator on real data
-    labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
-    discriminator_optimizer.zero_grad()
-    loss_d_real = train_model(
-        model=discriminator,
-        batch=batch,
-        label=labels,
-        criterion=discriminator_criterion,
-    )
-
-    # train discriminator on fake data
-    labels = torch.full((b_size,), CONFIG.fake_label, dtype=torch.float)
-    loss_d_fake = train_model(
-        model=discriminator,
-        batch=fake_batch.detach(),
-        label=labels,
-        criterion=discriminator_criterion,
-    )
-    if torch.stack([loss_d_real, loss_d_fake]).mean() > CONFIG.train.dis_min_loss:
-        discriminator_optimizer.step()
-
+    generator_optimizer.step()
     return loss_d_real, loss_d_fake, loss_g
 
 
@@ -224,7 +233,6 @@ def validate_step(
         label=labels,
         criterion=discriminator_criterion,
     )
-    d_pred = torch.clone(d_pred.cpu())
 
     # validate generator with trained discriminator
     labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
@@ -234,7 +242,6 @@ def validate_step(
         label=labels,
         criterion=generator_criterion,
     )
-    g_pred = torch.clone(g_pred.cpu())
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred
 
@@ -283,13 +290,17 @@ def train(
         losses = {
             "train_d_real": [],
             "train_d_fake": [],
+            "train_d": [],
             "train_g": [],
             "valid_d_real": [],
             "valid_d_fake": [],
+            "valid_d": [],
             "valid_g": [],
         }
 
-        for _ in tqdm(range(CONFIG.train.steps_per_epoch), desc="STEP ", leave=False):
+        for step in tqdm(
+            range(CONFIG.train.steps_per_epoch), desc="STEP ", leave=False
+        ):
             try:
                 batch = next(batch_iterator)
             except StopIteration:
@@ -308,7 +319,21 @@ def train(
 
             losses["train_d_real"].append(loss_d_real)
             losses["train_d_fake"].append(loss_d_fake)
+            losses["train_d"].append(loss_d_real + loss_d_fake)
             losses["train_g"].append(loss_g)
+            log.info(f"D: {loss_d_real + loss_d_fake} G: {loss_g}")
+            wandblog(
+                {
+                    "epoch": epoch,
+                    "step": step + epoch * CONFIG.train.steps_per_epoch,
+                    "error": {
+                        "train_d_real": loss_d_real,
+                        "train_d_fake": loss_d_fake,
+                        "train_d": loss_d_fake + loss_d_real,
+                        "train_g": loss_g,
+                    },
+                }
+            )
 
         generator.eval()
         discriminator.eval()
@@ -336,21 +361,22 @@ def train(
 
                 losses["valid_d_real"].append(loss_d_real)
                 losses["valid_d_fake"].append(loss_d_fake)
+                losses["valid_d"].append(loss_g + loss_d_real)
                 losses["valid_g"].append(loss_g)
 
                 # only log last validation batch to wandb, no need to spam it with images
                 if i == last_batch_num:
                     examples["fake"] = [
                         wandb.Image(img, caption=f"Pred: {val}")
-                        for img, val in zip(fake.cpu()[:3], g_pred[:3])
+                        for img, val in zip(fake.cpu(), g_pred.cpu())
                     ]
                     examples["real"] = [
                         wandb.Image(img, caption=f"Pred: {val}")
-                        for img, val in zip(batch.cpu()[:3], d_pred[:3])
+                        for img, val in zip(batch.cpu(), d_pred.cpu())
                     ]
 
         avg_losses = {
-            key: float(torch.stack(val).mean()) for key, val in losses.items() if val
+            key: float(torch.Tensor(val).mean()) for key, val in losses.items() if val
         }
 
         log.info(f"Epoch: {epoch}/{CONFIG.train.num_of_epochs}")

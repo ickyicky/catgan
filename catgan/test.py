@@ -58,6 +58,7 @@ def test(
         "test_d_real": [],
         "test_d_fake": [],
         "test_g": [],
+        "test_d": [],
     }
 
     examples = {}
@@ -83,20 +84,21 @@ def test(
             losses["test_d_real"].append(loss_d_real)
             losses["test_d_fake"].append(loss_d_fake)
             losses["test_g"].append(loss_g)
+            losses["test_d"].append(loss_d_real + loss_d_fake)
 
             # only log last validation batch to wandb, no need to spam it with images
             if i == last_batch_num:
                 examples["fake"] = [
                     wandb.Image(img, caption=f"Pred: {val}")
-                    for img, val in zip(fake.cpu()[:3], g_pred[:3])
+                    for img, val in zip(fake.cpu(), g_pred.cpu())
                 ]
                 examples["real"] = [
                     wandb.Image(img, caption=f"Pred: {val}")
-                    for img, val in zip(batch.cpu()[:3], d_pred[:3])
+                    for img, val in zip(batch.cpu(), d_pred.cpu())
                 ]
 
     avg_losses = {
-        key: float(torch.stack(val).mean()) for key, val in losses.items() if val
+        key: float(torch.Tensor(val).mean()) for key, val in losses.items() if val
     }
     log.info("Test results:")
     log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))

@@ -12,8 +12,24 @@ from typing import Optional, Union
 log = logging.getLogger(__name__)
 
 
+"""
+Basically https://github.com/gmalivenko/cat-gan.git
+transformation, he did great job analyzing the dataset
+"""
 transform = transforms.Compose(
-    [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    [
+        transforms.Resize(64),
+        transforms.RandomCrop(64),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(
+            brightness=0.3,
+            contrast=0.1,
+            saturation=0.3,
+            hue=0.0,
+        ),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5] * 3, [0.5] * 3),
+    ]
 )
 
 
@@ -24,27 +40,25 @@ def set_logging(root: logging.Logger) -> None:
     :type root: logging.Logger
     :rtype: None
     """
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
+
+    if not os.path.exists("log"):
+        os.mkdir("log")
+
+    logfile = "run.log"
 
     if wandb.run is not None:
-        if not os.path.exists("log"):
-            os.mkdir("log")
-
         run_name = "_".join(wandb.run.name.split("-")[:-1])
         run_num = wandb.run.name.split("-")[-1]
         logfile = f"{run_num}_{run_name}.log"
 
-        handler = logging.FileHandler(os.path.join("log", logfile))
+    handler = logging.FileHandler(os.path.join("log", logfile))
 
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 
 DEVICE: Optional[torch.device] = None

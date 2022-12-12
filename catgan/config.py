@@ -14,8 +14,6 @@ class TrainConfig(BaseModel):
 
     dis_learning_rate: float
     gen_learning_rate: float
-    dis_min_loss: float
-    gen_min_loss: float
     num_of_epochs: int
     steps_per_epoch: int
 

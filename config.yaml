@@ -16,6 +16,6 @@ generator:
 discriminator:
   load_path: "saved_models/discriminator.pth"
   save_to: "saved_models/discriminator.pth" 
-real_label: 0.09
-fake_label: 0.9
-generator_fake_label: 0.09
+real_label: 0.9
+fake_label: 0.09
+generator_fake_label: 0.9

@@ -154,11 +154,6 @@ class LSGANDiscriminator(nn.Module):
             activation=False,
         )
 
-        # self.fully_connected = LSGANDiscriminatorFullyConnectedBlock(
-        #     in_shape=(512, 4),
-        #     out_features=1,
-        # )
-
     def forward(self, x: Tensor) -> Tensor:
         """forward.
 
@@ -170,7 +165,6 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
-        # out = self.fully_connected(out)
         out = self.conv5(out)
         return out
 

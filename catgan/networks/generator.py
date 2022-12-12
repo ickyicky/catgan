@@ -119,11 +119,6 @@ class LSGANGenerator(nn.Module):
         super().__init__()
         self.in_features = in_features
 
-        # self.fully_connected = LSGANGeneratorFullyConnectedBlock(
-        #     in_features=in_features,
-        #     out_shape=(1024, 4),
-        # )
-
         self.deconv1 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
             in_channels=in_features,
@@ -141,46 +136,22 @@ class LSGANGenerator(nn.Module):
         )
 
         self.deconv3 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
+            kernel_size=4,
             in_channels=512,
-            out_channels=512,
-            stride=1,
+            out_channels=256,
+            stride=2,
             padding=1,
         )
 
         self.deconv4 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
-            in_channels=512,
-            out_channels=256,
+            in_channels=256,
+            out_channels=128,
             stride=2,
             padding=1,
         )
 
         self.deconv5 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=256,
-            out_channels=256,
-            stride=1,
-            padding=1,
-        )
-
-        self.deconv6 = LSGANGeneratorDeconvBlock(
-            kernel_size=4,
-            in_channels=256,
-            out_channels=128,
-            stride=2,
-            padding=1,
-        )
-
-        self.deconv7 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=128,
-            out_channels=128,
-            stride=1,
-            padding=1,
-        )
-
-        self.deconv8 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
             in_channels=128,
             out_channels=3,
@@ -204,9 +175,6 @@ class LSGANGenerator(nn.Module):
         out = self.deconv3(out)
         out = self.deconv4(out)
         out = self.deconv5(out)
-        out = self.deconv6(out)
-        out = self.deconv7(out)
-        out = self.deconv8(out)
         out = self.tanh(out)
         return out
 

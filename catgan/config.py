@@ -47,6 +47,6 @@ class Config(BaseModel):
     generator: GeneratorConfig
     discriminator: DiscriminatorConfig
 
-    real_label: int
-    fake_label: int
-    generator_fake_label: int
+    real_label: float
+    fake_label: float
+    generator_fake_label: float

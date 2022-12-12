@@ -50,7 +50,10 @@ if __name__ == "__main__":
             config.generator.load_path, config.generator.in_features
         )
 
-        train_main(generator, discriminator, config)
+        try:
+            train_main(generator, discriminator, config)
+        except KeyboardInterrupt:
+            pass
 
         save_model(generator, config.generator.save_to)
         save_model(discriminator, config.discriminator.save_to)

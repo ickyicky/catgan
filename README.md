@@ -34,3 +34,11 @@ This should result in creating `data/test` and `data/train` folders with cat ima
 ```bash
 python3 -m catgan.dataset --split --test-percentage=30
 ```
+
+## References
+
+Generator and discriminator are implementation (slightly changed to generate 64x64 images) of network proposed in [Least Squares Generative Adversarial Networks paper](https://arxiv.org/abs/1611.04076).
+
+Dataset used during training: [Cat-faces-dataset](https://github.com/fferlito/Cat-faces-dataset.git), huge thanks to [fferlito](https://github.com/fferlito)
+
+Dataset implemenetation was inspired by one found in [cat-gan](https://github.com/gmalivenko/cat-gan), transformation used in this repository saved me countless hours of fighting various training problems.

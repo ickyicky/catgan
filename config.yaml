@@ -1,12 +1,14 @@
 data:
   train_data: "data/train/*.png"
   test_data: "data/test/*.png"
-  batch_size: 64
+  batch_size: 8
 train:
-  gen_learning_rate: 0.00005
-  dis_learning_rate: 0.0001
-  num_of_epochs: 1000
-  val_data_percentage: 0.2
+  gen_learning_rate: 0.0001
+  dis_learning_rate: 0.00005
+  gen_min_loss: -1.0
+  dis_min_loss: 0.25
+  num_of_epochs: 10
+  val_data_percentage: 0.3
 generator:
   load_path: "saved_models/generator.pth"
   save_to: "saved_models/generator.pth" 

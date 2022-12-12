@@ -137,6 +137,8 @@ def train_step(
     real_label: int,
     fake_label: int,
     generator_fake_label: int,
+    train_generator: bool,
+    train_discriminator: bool,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     """train_step.
 
@@ -167,40 +169,43 @@ def train_step(
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), real_label, dtype=torch.float)
-
-    # train discriminator on real data
-    discriminator_optimizer.zero_grad()
-    loss_d_real = train_model(
-        discriminator,
-        batch,
-        labels,
-        discriminator_criterion,
-        device,
-    )
-
-    # train discriminator on fake data
-    labels.fill_(fake_label)
     fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
-    loss_d_fake = train_model(
-        discriminator,
-        fake_batch.detach(),
-        labels,
-        discriminator_criterion,
-        device,
-    )
-    discriminator_optimizer.step()
+    loss_g = loss_d_real = loss_d_fake = None
 
-    # train generator with trained discriminator
-    generator_optimizer.zero_grad()
-    labels.fill_(generator_fake_label)
-    loss_g = train_model(
-        discriminator,
-        fake_batch,
-        labels,
-        generator_criterion,
-        device,
-    )
-    generator_optimizer.step()
+    if train_discriminator:
+        # train discriminator on real data
+        discriminator_optimizer.zero_grad()
+        loss_d_real = train_model(
+            model=discriminator,
+            batch=batch,
+            label=labels,
+            criterion=discriminator_criterion,
+            device=device,
+        )
+
+        # train discriminator on fake data
+        labels.fill_(fake_label)
+        loss_d_fake = train_model(
+            model=discriminator,
+            batch=fake_batch.detach(),
+            label=labels,
+            criterion=discriminator_criterion,
+            device=device,
+        )
+        discriminator_optimizer.step()
+
+    if train_generator:
+        # train generator with trained discriminator
+        generator_optimizer.zero_grad()
+        labels.fill_(generator_fake_label)
+        loss_g = train_model(
+            model=discriminator,
+            batch=fake_batch,
+            label=labels,
+            criterion=generator_criterion,
+            device=device,
+        )
+        generator_optimizer.step()
 
     return loss_d_real, loss_d_fake, loss_g
 
@@ -241,35 +246,35 @@ def validate_step(
     # create labels
     b_size = batch.size(0)
     labels = torch.full((b_size,), real_label, dtype=torch.float)
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
 
     # train discriminator on real data
     loss_d_real, _ = validate_model(
-        discriminator,
-        batch,
-        labels,
-        discriminator_criterion,
-        device,
+        model=discriminator,
+        batch=batch,
+        label=labels,
+        criterion=discriminator_criterion,
+        device=device,
     )
 
     # train discriminator on fake data
     labels.fill_(fake_label)
-    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
     loss_d_fake, _ = validate_model(
-        discriminator,
-        fake_batch.detach(),
-        labels,
-        discriminator_criterion,
-        device,
+        model=discriminator,
+        batch=fake_batch.detach(),
+        label=labels,
+        criterion=discriminator_criterion,
+        device=device,
     )
 
     # train generator with trained discriminator
     labels.fill_(generator_fake_label)
     loss_g, pred = validate_model(
-        discriminator,
-        fake_batch,
-        labels,
-        generator_criterion,
-        device,
+        model=discriminator,
+        batch=fake_batch,
+        label=labels,
+        criterion=generator_criterion,
+        device=device,
     )
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, pred
@@ -282,9 +287,11 @@ def train(
     generator: LSGANGenerator,
     generator_optimizer: optim.Adam,
     generator_criterion: torch.nn.BCELoss,
+    generator_minimum_loss: float,
     discriminator: LSGANDiscriminator,
     discriminator_optimizer: optim.Adam,
     discriminator_criterion: torch.nn.BCELoss,
+    discriminator_minimum_loss: float,
     device: torch.device,
     real_label: int,
     fake_label: int,
@@ -320,6 +327,10 @@ def train(
     :type generator_fake_label: int
     :rtype: None
     """
+
+    last_d_loss = None
+    last_g_loss = None
+
     for epoch in range(num_of_epochs):
         generator.train()
         discriminator.train()
@@ -351,11 +362,18 @@ def train(
                 real_label,
                 fake_label,
                 generator_fake_label,
+                train_generator=last_g_loss is None
+                or last_g_loss > generator_minimum_loss,
+                train_discriminator=last_g_loss is None
+                or last_d_loss > discriminator_minimum_loss,
             )
 
-            losses["train_d_real"].append(loss_d_real)
-            losses["train_d_fake"].append(loss_d_fake)
-            losses["train_g"].append(loss_g)
+            if loss_d_fake is not None and loss_d_real is not None:
+                losses["train_d_real"].append(loss_d_real)
+                losses["train_d_fake"].append(loss_d_fake)
+
+            if loss_g is not None:
+                losses["train_g"].append(loss_g)
 
         generator.eval()
         discriminator.eval()
@@ -400,8 +418,12 @@ def train(
                     examples += [wandb.Image(img, caption="real") for img in batch[:3]]
 
         avg_losses = {
-            key: float(torch.stack(val).mean()) for key, val in losses.items()
+            key: float(torch.stack(val).mean()) for key, val in losses.items() if val
         }
+
+        last_d_loss = (avg_losses["valid_d_fake"] + avg_losses["valid_d_real"]) / 2
+        last_g_loss = avg_losses["valid_g"]
+
         log.info(f"Epoch: {epoch}/{num_of_epochs}")
         log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
         wandb_log = {
@@ -441,14 +463,14 @@ def train_main(
         batch_size=config.data.batch_size,
         shuffle=True,
         pin_memory=True,
-        num_workers=4,
+        num_workers=0,
     )
     val_data_loader = DataLoader(
         val_data,
         batch_size=config.data.batch_size,
         shuffle=True,
         pin_memory=True,
-        num_workers=4,
+        num_workers=0,
     )
 
     generator_optimizer = optim.Adam(
@@ -468,8 +490,10 @@ def train_main(
         generator=generator,
         generator_optimizer=generator_optimizer,
         generator_criterion=generator_criterion,
+        generator_minimum_loss=config.train.gen_min_loss,
         discriminator=discriminator,
         discriminator_optimizer=discriminator_optimizer,
+        discriminator_minimum_loss=config.train.dis_min_loss,
         discriminator_criterion=discriminator_criterion,
         device=get_device(),
         real_label=config.real_label,

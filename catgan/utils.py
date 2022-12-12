@@ -92,7 +92,6 @@ def load_generator(load_path: Optional[str], in_features: int) -> LSGANGenerator
     :rtype: LSGANGenerator
     """
     model = LSGANGenerator(in_features)
-    model.apply(weights_init)
 
     if load_path is not None:
         if not os.path.exists(load_path):
@@ -101,6 +100,8 @@ def load_generator(load_path: Optional[str], in_features: int) -> LSGANGenerator
             )
         else:
             model.load_state_dict(torch.load(load_path))
+    else:
+        model.apply(weights_init)
 
     model = model.to(get_device())
 
@@ -115,7 +116,6 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
     :rtype: LSGANDiscriminator
     """
     model = LSGANDiscriminator()
-    model.apply(weights_init)
 
     if load_path is not None:
         if not os.path.exists(load_path):
@@ -124,6 +124,8 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
             )
         else:
             model.load_state_dict(torch.load(load_path))
+    else:
+        model.apply(weights_init)
 
     model = model.to(get_device())
 

@@ -224,7 +224,7 @@ def validate_step(
         label=labels,
         criterion=discriminator_criterion,
     )
-    d_pred = d_pred.cpu()
+    d_pred = torch.clone(d_pred.cpu())
 
     # train generator with trained discriminator
     labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
@@ -234,7 +234,7 @@ def validate_step(
         label=labels,
         criterion=generator_criterion,
     )
-    g_pred = g_pred.cpu()
+    g_pred = torch.clone(g_pred.cpu())
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred
 
@@ -342,14 +342,13 @@ def train(
 
                     # only log last validation batch to wandb, no need to spam it with images
                     if i == last_batch_num:
-                        cpu = torch.device("cpu")
                         examples["fake"] = [
                             wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(fake.to(cpu)[:3], g_pred[:3])
+                            for img, val in zip(fake.cpu()[:3], g_pred[:3])
                         ]
                         examples["real"] = [
                             wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(batch.to(cpu)[:3], d_pred[:3])
+                            for img, val in zip(batch.cpu()[:3], d_pred[:3])
                         ]
 
             avg_losses = {

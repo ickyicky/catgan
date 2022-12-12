@@ -158,7 +158,7 @@ def train_step(
         label=labels,
         criterion=generator_criterion,
     )
-    if loss_g > config.train.gen_min_loss:
+    if loss_g > CONFIG.train.gen_min_loss:
         generator_optimizer.step()
 
     # train discriminator on real data
@@ -179,7 +179,7 @@ def train_step(
         label=labels,
         criterion=discriminator_criterion,
     )
-    if torch.stack([loss_d_real, loss_d_fake]).mean() > config.train.dis_min_loss:
+    if torch.stack([loss_d_real, loss_d_fake]).mean() > CONFIG.train.dis_min_loss:
         discriminator_optimizer.step()
 
     return loss_d_real, loss_d_fake, loss_g

@@ -113,7 +113,7 @@ class LSGANGenerator(nn.Module):
     def __init__(self, in_features: int):
         """Generator network.
 
-        Excpects (X, 100, 1, 1) tensors, where X is batch size
+        Excpects (X, in_features, 1, 1) tensors, where X is batch size
         Outputs (X, 3, 64, 64) batch of generated images.
         """
         super().__init__()

@@ -2,7 +2,6 @@ import wandb
 import torch
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import random_split
 import torch.optim as optim
 from tqdm import tqdm
 import logging
@@ -22,6 +21,17 @@ log.setLevel(logging.INFO)
 CONFIG: Optional[Config] = None
 
 
+def configure(config: Config) -> None:
+    """configure.
+
+    :param config:
+    :type config: Config
+    :rtype: None
+    """
+    global CONFIG
+    CONFIG = config
+
+
 def batch_of_noise(b_size: int, in_features: int) -> Tensor:
     return torch.randn(b_size, in_features, 1, 1, device=get_device())
 
@@ -30,6 +40,14 @@ def common_compute(
     model: Union[LSGANDiscriminator, LSGANGenerator],
     batch: Tensor,
 ) -> Tensor:
+    """common_compute.
+
+    :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
+    :param batch:
+    :type batch: Tensor
+    :rtype: Tensor
+    """
     batch = batch.to(get_device())
     result = model(batch).view(-1)
     return result
@@ -38,6 +56,16 @@ def common_compute(
 def calculate_loss(
     result: Tensor, label: Tensor, criterion: torch.nn.MSELoss
 ) -> Tensor:
+    """calculate_loss.
+
+    :param result:
+    :type result: Tensor
+    :param label:
+    :type label: Tensor
+    :param criterion:
+    :type criterion: torch.nn.MSELoss
+    :rtype: Tensor
+    """
     label = label.to(get_device())
     return criterion(result, label)
 
@@ -48,6 +76,18 @@ def train_model(
     label: Tensor,
     criterion: torch.nn.MSELoss,
 ) -> Tensor:
+    """train_model.
+
+    :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
+    :param batch:
+    :type batch: Tensor
+    :param label:
+    :type label: Tensor
+    :param criterion:
+    :type criterion: torch.nn.MSELoss
+    :rtype: Tensor
+    """
     result = common_compute(model, batch)
     loss = calculate_loss(result, label, criterion)
     loss.backward()
@@ -60,6 +100,18 @@ def validate_model(
     label: Tensor,
     criterion: torch.nn.MSELoss,
 ) -> Tuple[Tensor, Tensor]:
+    """validate_model.
+
+    :param model:
+    :type model: Union[LSGANDiscriminator, LSGANGenerator]
+    :param batch:
+    :type batch: Tensor
+    :param label:
+    :type label: Tensor
+    :param criterion:
+    :type criterion: torch.nn.MSELoss
+    :rtype: Tuple[Tensor, Tensor]
+    """
     result = common_compute(model, batch)
     loss = calculate_loss(result, label, criterion)
     return loss, result
@@ -74,7 +126,24 @@ def train_step(
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-    # create labels
+    """train_step.
+
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_optimizer:
+    :type generator_optimizer: optim.Adam
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_optimizer:
+    :type discriminator_optimizer: optim.Adam
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
+    :param batch:
+    :type batch: Tensor
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
+    """
     b_size = batch.size(0)
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     loss_g = loss_d_real = loss_d_fake = None
@@ -123,7 +192,20 @@ def validate_step(
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-    # create labels
+    """validate_step.
+
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.MSELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.MSELoss
+    :param batch:
+    :type batch: Tensor
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
+    """
     b_size = batch.size(0)
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     fake_batch = generator(batch_of_noise(b_size, generator.in_features))
@@ -167,6 +249,26 @@ def train(
     discriminator_optimizer: optim.Adam,
     discriminator_criterion: torch.nn.BCELoss,
 ) -> None:
+    """train.
+
+    :param train_data:
+    :type train_data: Tensor
+    :param validate_data:
+    :type validate_data: Tensor
+    :param generator:
+    :type generator: LSGANGenerator
+    :param generator_optimizer:
+    :type generator_optimizer: optim.Adam
+    :param generator_criterion:
+    :type generator_criterion: torch.nn.BCELoss
+    :param discriminator:
+    :type discriminator: LSGANDiscriminator
+    :param discriminator_optimizer:
+    :type discriminator_optimizer: optim.Adam
+    :param discriminator_criterion:
+    :type discriminator_criterion: torch.nn.BCELoss
+    :rtype: None
+    """
     generator.train()
     discriminator.train()
 
@@ -290,23 +392,20 @@ def train_main(
     :type config: Config
     :rtype: None
     """
-    global CONFIG
-    CONFIG = config
+    configure(config)
 
     dataset = CatsDataset(config.data.train_data, transform)
-    val_data_size = int(config.train.val_data_percentage * len(dataset))
-    train_data, val_data = random_split(
-        dataset, [len(dataset) - val_data_size, val_data_size]
-    )
+    test_dataset = CatsDataset(config.data.test_data, transform)
+
     train_data_loader = DataLoader(
-        train_data,
+        dataset,
         batch_size=config.data.batch_size,
         shuffle=True,
         pin_memory=True,
         num_workers=0,
     )
     val_data_loader = DataLoader(
-        val_data,
+        test_dataset,
         batch_size=config.data.batch_size,
         shuffle=True,
         pin_memory=True,

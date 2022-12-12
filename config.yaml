@@ -8,7 +8,6 @@ train:
   gen_min_loss: -1.0
   dis_min_loss: -1.0
   num_of_epochs: 50000
-  val_data_percentage: 0.3
   epochs_between_val: 500
 generator:
   load_path: "saved_models/generator.pth"

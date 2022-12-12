@@ -12,7 +12,8 @@ class DataConfig(BaseModel):
 class TrainConfig(BaseModel):
     """TrainConfig."""
 
-    learning_rate: float
+    dis_learning_rate: float
+    gen_learning_rate: float
     num_of_epochs: int
     val_data_percentage: float
 

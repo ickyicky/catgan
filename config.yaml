@@ -3,7 +3,7 @@ data:
   test_data: "data/test/*.png"
   batch_size: 64
 train:
-  gen_learning_rate: 0.0002
+  gen_learning_rate: 0.00002
   dis_learning_rate: 0.00002
   num_of_epochs: 1000
   val_data_percentage: 0.2

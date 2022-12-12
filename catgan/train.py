@@ -81,6 +81,19 @@ def train_step(
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     loss_g = loss_d_real = loss_d_fake = None
 
+    if train_generator:
+        # train generator with trained discriminator
+        generator_optimizer.zero_grad()
+        fake_batch = generator(batch_of_noise(b_size, generator.in_features))
+        labels.fill_(CONFIG.generator_fake_label)
+        loss_g = train_model(
+            model=discriminator,
+            batch=fake_batch,
+            label=labels,
+            criterion=generator_criterion,
+        )
+        generator_optimizer.step()
+
     if train_discriminator:
         # train discriminator on real data
         discriminator_optimizer.zero_grad()
@@ -102,18 +115,6 @@ def train_step(
         )
         discriminator_optimizer.step()
 
-    if train_generator:
-        # train generator with trained discriminator
-        generator_optimizer.zero_grad()
-        fake_batch = generator(batch_of_noise(b_size, generator.in_features))
-        labels.fill_(CONFIG.generator_fake_label)
-        loss_g = train_model(
-            model=discriminator,
-            batch=fake_batch,
-            label=labels,
-            criterion=generator_criterion,
-        )
-        generator_optimizer.step()
 
     return loss_d_real, loss_d_fake, loss_g
 

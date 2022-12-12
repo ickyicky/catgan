@@ -121,63 +121,39 @@ class LSGANGenerator(nn.Module):
 
         self.fully_connected = LSGANGeneratorFullyConnectedBlock(
             in_features=in_features,
-            out_shape=(256, 4),
+            out_shape=(1024, 4),
         )
 
         self.deconv1 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=256,
-            out_channels=256,
+            kernel_size=4,
+            in_channels=1024,
+            out_channels=512,
             stride=2,
             padding=1,
         )
 
         self.deconv2 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=256,
+            kernel_size=4,
+            in_channels=512,
             out_channels=256,
-            stride=1,
+            stride=2,
             padding=1,
         )
 
         self.deconv3 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=256,
-            out_channels=256,
-            stride=2,
-            padding=0,
-        )
-
-        self.deconv4 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=256,
-            out_channels=256,
-            stride=1,
-            padding=1,
-        )
-
-        self.deconv5 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
+            kernel_size=4,
             in_channels=256,
             out_channels=128,
             stride=2,
-            padding=0,
-        )
-
-        self.deconv6 = LSGANGeneratorDeconvBlock(
-            kernel_size=3,
-            in_channels=128,
-            out_channels=64,
-            stride=2,
             padding=1,
         )
 
-        self.deconv7 = LSGANGeneratorDeconvBlock(
-            in_channels=64,
-            out_channels=3,
+        self.deconv4 = LSGANGeneratorDeconvBlock(
             kernel_size=4,
-            stride=1,
-            padding=0,
+            in_channels=128,
+            out_channels=3,
+            stride=2,
+            padding=1,
             activation=False,
             batch_normalization=False,
         )
@@ -196,9 +172,6 @@ class LSGANGenerator(nn.Module):
         out = self.deconv2(out)
         out = self.deconv3(out)
         out = self.deconv4(out)
-        out = self.deconv5(out)
-        out = self.deconv6(out)
-        out = self.deconv7(out)
         out = self.tanh(out)
         return out
 

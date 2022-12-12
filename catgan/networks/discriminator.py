@@ -111,27 +111,25 @@ class LSGANDiscriminator(nn.Module):
         """
         super().__init__()
 
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(
-                kernel_size=5,
-                in_channels=3,
-                out_channels=64,
-                stride=2,
-                padding=4,
-            ),
-            nn.LeakyReLU(True),
+        self.conv1 = LSGANDiscriminatorConvBlock(
+            kernel_size=4,
+            in_channels=3,
+            out_channels=64,
+            stride=2,
+            padding=1,
+            batch_normalization=False,
         )
 
         self.conv2 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=64,
             out_channels=128,
             stride=2,
-            padding=2,
+            padding=1,
         )
 
         self.conv3 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=128,
             out_channels=256,
             stride=2,
@@ -139,16 +137,27 @@ class LSGANDiscriminator(nn.Module):
         )
 
         self.conv4 = LSGANDiscriminatorConvBlock(
-            kernel_size=5,
+            kernel_size=4,
             in_channels=256,
             out_channels=512,
             stride=2,
+            padding=1,
         )
 
-        self.fully_connected = LSGANDiscriminatorFullyConnectedBlock(
-            in_shape=(512, 4),
-            out_features=1,
+        self.conv5 = LSGANDiscriminatorConvBlock(
+            kernel_size=4,
+            in_channels=512,
+            out_channels=1,
+            stride=1,
+            padding=0,
+            batch_normalization=False,
+            activation=False,
         )
+
+        # self.fully_connected = LSGANDiscriminatorFullyConnectedBlock(
+        #     in_shape=(512, 4),
+        #     out_features=1,
+        # )
 
     def forward(self, x: Tensor) -> Tensor:
         """forward.
@@ -161,7 +170,8 @@ class LSGANDiscriminator(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
-        out = self.fully_connected(out)
+        # out = self.fully_connected(out)
+        out = self.conv5(out)
         return out
 
 

@@ -438,10 +438,10 @@ def train_main(
     val_data_loader = DataLoader(val_data, batch_size=config.data.batch_size)
 
     generator_optimizer = optim.Adam(
-        generator.parameters(), lr=config.train.learning_rate
+        generator.parameters(), lr=config.train.gen_learning_rate
     )
     discriminator_optimizer = optim.Adam(
-        discriminator.parameters(), lr=config.train.learning_rate
+        discriminator.parameters(), lr=config.train.dis_learning_rate
     )
 
     generator_criterion = torch.nn.MSELoss()

@@ -107,13 +107,8 @@ def load_generator(load_path: Optional[str], in_features: int) -> LSGANGenerator
     """
     model = LSGANGenerator(in_features)
 
-    if load_path is not None:
-        if not os.path.exists(load_path):
-            log.warn(
-                f"Given generator load_path: {load_path} does not exist, initiallizing new model"
-            )
-        else:
-            model.load_state_dict(torch.load(load_path))
+    if load_path and os.path.exists(load_path):
+        model.load_state_dict(torch.load(load_path))
     else:
         model.apply(weights_init)
 
@@ -131,13 +126,8 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
     """
     model = LSGANDiscriminator()
 
-    if load_path is not None:
-        if not os.path.exists(load_path):
-            log.warn(
-                f"Given discriminator load_path: {load_path} does not exist, initiallizing new model"
-            )
-        else:
-            model.load_state_dict(torch.load(load_path))
+    if load_path and os.path.exists(load_path):
+        model.load_state_dict(torch.load(load_path))
     else:
         model.apply(weights_init)
 

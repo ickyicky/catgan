@@ -4,7 +4,7 @@ from torch import Tensor
 from tqdm import tqdm
 import wandb
 import logging
-from typing import Tuple
+from typing import Tuple, Optional
 from .train import validate_model, batch_of_noise
 from .wandb import log as wandblog
 from .config import Config
@@ -18,39 +18,16 @@ log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
 
+CONFIG: Optional[Config] = None
+
+
 def test_step(
     generator: LSGANGenerator,
     generator_criterion: torch.nn.MSELoss,
     discriminator: LSGANDiscriminator,
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
-    device: torch.device,
-    real_label: int,
-    fake_label: int,
-    generator_fake_label: int,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, int, int]:
-    """test_step.
-
-    :param generator:
-    :type generator: LSGANGenerator
-    :param generator_criterion:
-    :type generator_criterion: torch.nn.MSELoss
-    :param discriminator:
-    :type discriminator: LSGANDiscriminator
-    :param discriminator_criterion:
-    :type discriminator_criterion: torch.nn.MSELoss
-    :param batch:
-    :type batch: Tensor
-    :param device:
-    :type device: torch.device
-    :param real_label:
-    :type real_label: int
-    :param fake_label:
-    :type fake_label: int
-    :param generator_fake_label:
-    :type generator_fake_label: int
-    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, int, int]
-    """
     # create labels
     b_size = batch.size(0)
     total_count = 3 * b_size
@@ -69,7 +46,7 @@ def test_step(
         _, actual_labels = torch.max(labels.data, 0)
         return (actual_pred == actual_labels).sum().item()
 
-    labels = torch.full((b_size,), real_label, dtype=torch.float)
+    labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
 
     # train discriminator on real data
     loss_d_real, pred = validate_model(
@@ -77,30 +54,27 @@ def test_step(
         batch,
         labels,
         discriminator_criterion,
-        device,
     )
     correct += update_correct(pred, labels)
 
     # train discriminator on fake data
-    labels.fill_(fake_label)
-    fake_batch = generator(batch_of_noise(b_size, generator.in_features, device))
+    labels.fill_(CONFIG.fake_label)
+    fake_batch = generator(batch_of_noise(b_size, generator.in_features))
     loss_d_fake, pred = validate_model(
         discriminator,
         fake_batch.detach(),
         labels,
         discriminator_criterion,
-        device,
     )
     correct += update_correct(pred, labels)
 
     # train generator with trained discriminator
-    labels.fill_(generator_fake_label)
+    labels.fill_(CONFIG.generator_fake_label)
     loss_g, pred = validate_model(
         discriminator,
         fake_batch,
         labels,
         generator_criterion,
-        device,
     )
     correct += update_correct(pred, labels)
 
@@ -113,33 +87,7 @@ def test(
     generator_criterion: torch.nn.MSELoss,
     discriminator: LSGANDiscriminator,
     discriminator_criterion: torch.nn.MSELoss,
-    device: torch.device,
-    real_label: int,
-    fake_label: int,
-    generator_fake_label: int,
 ) -> None:
-    """test.
-
-    :param test_data:
-    :type test_data: Tensor
-    :param generator:
-    :type generator: LSGANGenerator
-    :param generator_criterion:
-    :type generator_criterion: torch.nn.MSELoss
-    :param discriminator:
-    :type discriminator: LSGANDiscriminator
-    :param discriminator_criterion:
-    :type discriminator_criterion: torch.nn.MSELoss
-    :param device:
-    :type device: torch.device
-    :param real_label:
-    :type real_label: int
-    :param fake_label:
-    :type fake_label: int
-    :param generator_fake_label:
-    :type generator_fake_label: int
-    :rtype: None
-    """
     losses = {
         "test_d_real": [],
         "test_d_fake": [],
@@ -173,10 +121,6 @@ def test(
                 discriminator,
                 discriminator_criterion,
                 batch,
-                device,
-                real_label,
-                fake_label,
-                generator_fake_label,
             )
 
             losses["test_d_real"].append(loss_d_real)
@@ -224,6 +168,9 @@ def test_main(
     :type config: Config
     :rtype: None
     """
+    global CONFIG
+    CONFIG = config
+
     dataset = CatsDataset(config.data.test_data, transform)
     data_loader = DataLoader(dataset, batch_size=config.data.batch_size)
 
@@ -236,8 +183,4 @@ def test_main(
         generator_criterion=generator_criterion,
         discriminator=discriminator,
         discriminator_criterion=discriminator_criterion,
-        device=get_device(),
-        real_label=config.real_label,
-        fake_label=config.fake_label,
-        generator_fake_label=config.generator_fake_label,
     )

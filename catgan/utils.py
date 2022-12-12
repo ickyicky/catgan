@@ -47,14 +47,21 @@ def set_logging(root: logging.Logger) -> None:
         root.addHandler(handler)
 
 
+DEVICE: Optional[torch.device] = None
+
+
 def get_device() -> torch.device:
     """get_device.
 
     :rtype: torch.device
     """
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
+    global DEVICE
+
+    if DEVICE is not None:
+        return DEVICE
+
+    DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    return DEVICE
 
 
 def weights_init(model: Union[LSGANDiscriminator, LSGANGenerator]) -> None:

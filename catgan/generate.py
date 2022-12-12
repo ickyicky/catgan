@@ -11,5 +11,5 @@ def generate(generator: LSGANGenerator) -> None:
     :rtype: None
     """
     noise = batch_of_noise(1, generator.in_features)
-    cat_image = generator(noise).cpu()
-    T.ToPILImage(cat_image).show()
+    cat_image = generator(noise).cpu()[0]
+    T.ToPILImage()(cat_image).convert("RGB").show()

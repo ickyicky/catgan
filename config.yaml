@@ -12,7 +12,7 @@ train:
 generator:
   load_path: "saved_models/generator.pth"
   save_to: "saved_models/generator.pth" 
-  in_features: 1024
+  in_features: 100
 discriminator:
   load_path: "saved_models/discriminator.pth"
   save_to: "saved_models/discriminator.pth" 

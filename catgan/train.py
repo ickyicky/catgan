@@ -145,13 +145,11 @@ def train_step(
     :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
     """
     b_size = batch.size(0)
-    labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
-    loss_g = loss_d_real = loss_d_fake = None
 
     # train generator with trained discriminator
     generator_optimizer.zero_grad()
     fake_batch = generator(batch_of_noise(b_size, generator.in_features))
-    labels.fill_(CONFIG.generator_fake_label)
+    labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
     loss_g = train_model(
         model=discriminator,
         batch=fake_batch,
@@ -162,6 +160,7 @@ def train_step(
         generator_optimizer.step()
 
     # train discriminator on real data
+    labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     discriminator_optimizer.zero_grad()
     loss_d_real = train_model(
         model=discriminator,
@@ -171,8 +170,7 @@ def train_step(
     )
 
     # train discriminator on fake data
-    labels.fill_(CONFIG.fake_label)
-    fake_batch = generator(batch_of_noise(b_size, generator.in_features))
+    labels = torch.full((b_size,), CONFIG.fake_label, dtype=torch.float)
     loss_d_fake = train_model(
         model=discriminator,
         batch=fake_batch.detach(),
@@ -219,22 +217,24 @@ def validate_step(
     )
 
     # train discriminator on fake data
-    labels.fill_(CONFIG.fake_label)
+    labels = torch.full((b_size,), CONFIG.fake_label, dtype=torch.float)
     loss_d_fake, d_pred = validate_model(
         model=discriminator,
         batch=fake_batch.detach(),
         label=labels,
         criterion=discriminator_criterion,
     )
+    d_pred = d_pred.cpu()
 
     # train generator with trained discriminator
-    labels.fill_(CONFIG.generator_fake_label)
+    labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
     loss_g, g_pred = validate_model(
         model=discriminator,
         batch=fake_batch,
         label=labels,
         criterion=generator_criterion,
     )
+    g_pred = g_pred.cpu()
 
     return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred
 
@@ -345,11 +345,11 @@ def train(
                         cpu = torch.device("cpu")
                         examples["fake"] = [
                             wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(fake.to(cpu)[:3], g_pred.to(cpu)[:3])
+                            for img, val in zip(fake.to(cpu)[:3], g_pred[:3])
                         ]
                         examples["real"] = [
                             wandb.Image(img, caption=f"Pred: {val}")
-                            for img, val in zip(batch.to(cpu)[:3], d_pred.to(cpu)[:3])
+                            for img, val in zip(batch.to(cpu)[:3], d_pred[:3])
                         ]
 
             avg_losses = {

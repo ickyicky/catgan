@@ -4,3 +4,4 @@ pydantic
 Pillow
 wandb
 tqdm
+scipy

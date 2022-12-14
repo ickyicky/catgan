@@ -108,7 +108,7 @@ def load_generator(load_path: Optional[str], in_features: int) -> LSGANGenerator
     model = LSGANGenerator(in_features)
 
     if load_path and os.path.exists(load_path):
-        model.load_state_dict(torch.load(load_path))
+        model.load_state_dict(torch.load(load_path, map_location=torch.device("cpu")))
     else:
         model.apply(weights_init)
 
@@ -127,7 +127,7 @@ def load_discriminator(load_path: Optional[str]) -> LSGANDiscriminator:
     model = LSGANDiscriminator()
 
     if load_path and os.path.exists(load_path):
-        model.load_state_dict(torch.load(load_path))
+        model.load_state_dict(torch.load(load_path, map_location=torch.device("cpu")))
     else:
         model.apply(weights_init)
 

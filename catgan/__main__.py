@@ -9,7 +9,7 @@ from .generate import generate
 from .wandb import init
 
 
-log = logging.getLogger()
+log = logging.getLogger("catgan")
 
 
 if __name__ == "__main__":

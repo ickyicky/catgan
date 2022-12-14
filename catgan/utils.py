@@ -76,10 +76,10 @@ def set_logging(root: logging.Logger, to_stdout: bool) -> None:
     root.addHandler(handler)
 
     if to_stdout:
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setFormatter(formatter)
+        root.addHandler(stdout_handler)
 
 
 DEVICE: Optional[torch.device] = None

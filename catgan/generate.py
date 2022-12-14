@@ -16,9 +16,9 @@ def generate_cat_images(generator: LSGANGenerator, amount: int) -> List[Any]:
     :rtype: List[Any]
     """
     noise = batch_of_noise(amount, generator.in_features)
-    cat_images = generator(noise).cpu()
+    cat_images = generator(noise).cpu() / 2.0 + 0.5
     transform = T.ToPILImage()
-    cat_images = [transform(cat_image).convert("RGB") for cat_image in cat_images]
+    cat_images = [transform(cat_image) for cat_image in cat_images]
     return cat_images
 
 

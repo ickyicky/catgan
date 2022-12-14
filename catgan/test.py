@@ -69,7 +69,7 @@ def test(
         bar = tqdm(
             test_data,
             position=0,
-            leave=False,
+            leave=True,
             desc=f"TEST",
         )
         last_batch_num = len(bar) - 1

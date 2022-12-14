@@ -333,6 +333,7 @@ def train(
     epochs = tqdm(
         range(CONFIG.train.num_of_epochs),
         position=0,
+        leave=True,
         desc="TRAIN",
     )
     for epoch in epochs:
@@ -353,7 +354,7 @@ def train(
         }
 
         for step in tqdm(
-            range(CONFIG.train.steps_per_epoch), desc="STEP ", leave=False
+            range(CONFIG.train.steps_per_epoch), desc="STEP ", leave=True, position=0,
         ):
             try:
                 batch = next(batch_iterator)
@@ -396,7 +397,7 @@ def train(
         examples = {}
 
         with torch.no_grad():
-            bar = tqdm(validate_data, leave=False, desc="VALID")
+            bar = tqdm(validate_data, leave=True, position=0, desc="VALID")
             last_batch_num = len(bar) - 1
             feature_extractor = FeatureExtractor.from_discriminator(discriminator).to(
                 get_device()

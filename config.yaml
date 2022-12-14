@@ -12,7 +12,7 @@ data:
     std: 0.5
     size: 64
 train:
-  dis_learning_rate: 0.0001
+  dis_learning_rate: 0.00001
   gen_learning_rate: 0.0001
   num_of_epochs: 1000
   steps_per_epoch: 400

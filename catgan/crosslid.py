@@ -10,6 +10,10 @@ Code provided in official testing repository for paper:
 
 
 def compute_mle(dists):
+    """compute_mle.
+
+    :param dists:
+    """
     epsilon = 1.0e-10
     dists = dists + epsilon
     k = len(dists)
@@ -20,6 +24,13 @@ def compute_mle(dists):
 
 
 def compute_crosslid_batch(X_ref, X, k, batch_size):
+    """compute_crosslid_batch.
+
+    :param X_ref:
+    :param X:
+    :param k:
+    :param batch_size:
+    """
     batch_selection = np.random.choice(X_ref.shape[0], batch_size, False)
     X_ref_batch = X_ref[batch_selection]
     dist = cdist(X, X_ref_batch)
@@ -30,6 +41,13 @@ def compute_crosslid_batch(X_ref, X, k, batch_size):
 
 
 def compute_crosslid(X, Y, k, batch_size):
+    """compute_crosslid.
+
+    :param X:
+    :param Y:
+    :param k:
+    :param batch_size:
+    """
     X = X.reshape(X.shape[0], -1)
     Y = Y.reshape(Y.shape[0], -1)
     n_batches = int(np.ceil(Y.shape[0] / batch_size))
@@ -44,6 +62,11 @@ def compute_crosslid(X, Y, k, batch_size):
 
 
 def scale_value(X, to_min_max):
+    """scale_value.
+
+    :param X:
+    :param to_min_max:
+    """
     from_min_max = get_min_max(X)
     X = X - from_min_max[0]
     X = X / (from_min_max[1] - from_min_max[0])
@@ -53,6 +76,10 @@ def scale_value(X, to_min_max):
 
 
 def get_min_max(inp):
+    """get_min_max.
+
+    :param inp:
+    """
     minv = np.min(inp, axis=0)
     minv = np.min(minv)
     minv = np.min(minv)

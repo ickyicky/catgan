@@ -35,6 +35,14 @@ def configure(config: Config) -> None:
 
 
 def batch_of_noise(b_size: int, in_features: int) -> Tensor:
+    """batch_of_noise.
+
+    :param b_size:
+    :type b_size: int
+    :param in_features:
+    :type in_features: int
+    :rtype: Tensor
+    """
     return (
         torch.FloatTensor(
             b_size,
@@ -136,7 +144,7 @@ def train_step(
     discriminator_optimizer: optim.Adam,
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
-) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """train_step.
 
     :param generator:
@@ -153,7 +161,7 @@ def train_step(
     :type discriminator_criterion: torch.nn.MSELoss
     :param batch:
     :type batch: Tensor
-    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor]
     """
     b_size = batch.size(0)
 
@@ -204,6 +212,16 @@ def calculate_cross_lid(
     fake_batch: Tensor,
     real_batch: Tensor,
 ) -> Tensor:
+    """calculate_cross_lid.
+
+    :param feature_extractor:
+    :type feature_extractor: FeatureExtractor
+    :param fake_batch:
+    :type fake_batch: Tensor
+    :param real_batch:
+    :type real_batch: Tensor
+    :rtype: Tensor
+    """
     with torch.no_grad():
         b_size = real_batch.size(0)
         fake_features = feature_extractor(fake_batch.to(get_device())).cpu()
@@ -223,7 +241,7 @@ def validate_step(
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
     feature_extractor: FeatureExtractor,
-) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
     """validate_step.
 
     :param generator:
@@ -236,7 +254,9 @@ def validate_step(
     :type discriminator_criterion: torch.nn.MSELoss
     :param batch:
     :type batch: Tensor
-    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]
+    :param feature_extractor:
+    :type feature_extractor: FeatureExtractor
+    :rtype: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
     """
     b_size = batch.size(0)
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)

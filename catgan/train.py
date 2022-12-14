@@ -8,10 +8,12 @@ import logging
 from typing import Union, Tuple, Optional
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
+from .networks.feature_extractor import FeatureExtractor
 from .utils import transform, get_device
 from .dataloader import CatsDataset
 from .config import Config
 from .wandb import log as wandblog
+from .crosslid import compute_crosslid
 
 
 log = logging.getLogger(__name__)
@@ -188,8 +190,29 @@ def train_step(
         criterion=generator_criterion,
     )
 
+    cross_lid = calculate_cross_lid(discriminator, fake_batch.detach(), batch)
+
     generator_optimizer.step()
-    return loss_d_real, loss_d_fake, loss_g
+    return loss_d_real, loss_d_fake, loss_g, cross_lid
+
+
+def calculate_cross_lid(
+    discriminator: LSGANDiscriminator,
+    fake_batch: Tensor,
+    real_batch: Tensor,
+) -> Tensor:
+    with torch.no_grad():
+        b_size = real_batch.size(0)
+        feature_extractor = FeatureExtractor.from_discriminator(discriminator)
+        feature_extractor = feature_extractor.to(get_device())
+        fake_features = feature_extractor(fake_batch.to(get_device())).cpu()
+        real_features = feature_extractor(real_batch.to(get_device())).cpu()
+        return compute_crosslid(
+            fake_features,
+            real_features,
+            b_size,
+            b_size,
+        )
 
 
 def validate_step(
@@ -243,7 +266,14 @@ def validate_step(
         criterion=generator_criterion,
     )
 
-    return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred
+    # calculate cross lid
+    cross_lid = calculate_cross_lid(
+        discriminator=discriminator,
+        fake_batch=fake_batch,
+        real_batch=batch,
+    )
+
+    return loss_d_real, loss_d_fake, loss_g, fake_batch, d_pred, g_pred, cross_lid
 
 
 def train(
@@ -292,10 +322,12 @@ def train(
             "train_d_fake": [],
             "train_d": [],
             "train_g": [],
+            "train_cross_lid": [],
             "valid_d_real": [],
             "valid_d_fake": [],
             "valid_d": [],
             "valid_g": [],
+            "valid_cross_lid": [],
         }
 
         for step in tqdm(
@@ -307,7 +339,7 @@ def train(
                 batch_iterator = iter(train_data)
                 batch = next(batch_iterator)
 
-            loss_d_real, loss_d_fake, loss_g = train_step(
+            loss_d_real, loss_d_fake, loss_g, cross_lid = train_step(
                 generator,
                 generator_optimizer,
                 generator_criterion,
@@ -321,6 +353,7 @@ def train(
             losses["train_d_fake"].append(loss_d_fake)
             losses["train_d"].append(loss_d_real + loss_d_fake)
             losses["train_g"].append(loss_g)
+            losses["train_cross_lid"].append(cross_lid)
             log.info(f"D: {loss_d_real + loss_d_fake} G: {loss_g}")
             wandblog(
                 {
@@ -331,6 +364,7 @@ def train(
                         "train_d_fake": loss_d_fake,
                         "train_d": loss_d_fake + loss_d_real,
                         "train_g": loss_g,
+                        "train_cross_lid": cross_lid,
                     },
                 }
             )
@@ -351,6 +385,7 @@ def train(
                     fake,
                     d_pred,
                     g_pred,
+                    cross_lid,
                 ) = validate_step(
                     generator,
                     generator_criterion,
@@ -363,6 +398,7 @@ def train(
                 losses["valid_d_fake"].append(loss_d_fake)
                 losses["valid_d"].append(loss_g + loss_d_real)
                 losses["valid_g"].append(loss_g)
+                losses["valid_cross_lid"].append(cross_lid)
 
                 # only log last validation batch to wandb, no need to spam it with images
                 if i == last_batch_num:
@@ -422,7 +458,7 @@ def train_main(
     )
     val_data_loader = DataLoader(
         test_dataset,
-        batch_size=config.data.batch_size,
+        batch_size=config.data.val_batch_size,
         shuffle=True,
         pin_memory=True,
         num_workers=0,

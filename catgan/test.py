@@ -59,6 +59,7 @@ def test(
         "test_d_fake": [],
         "test_g": [],
         "test_d": [],
+        "test_cross_lid": [],
     }
 
     examples = {}
@@ -73,7 +74,15 @@ def test(
         last_batch_num = len(bar) - 1
 
         for i, batch in enumerate(bar):
-            (loss_d_real, loss_d_fake, loss_g, fake, d_pred, g_pred,) = validate_step(
+            (
+                loss_d_real,
+                loss_d_fake,
+                loss_g,
+                fake,
+                d_pred,
+                g_pred,
+                cross_lid,
+            ) = validate_step(
                 generator,
                 generator_criterion,
                 discriminator,
@@ -85,6 +94,7 @@ def test(
             losses["test_d_fake"].append(loss_d_fake)
             losses["test_g"].append(loss_g)
             losses["test_d"].append(loss_d_real + loss_d_fake)
+            losses["test_cross_lid"].append(cross_lid)
 
             # only log last validation batch to wandb, no need to spam it with images
             if i == last_batch_num:
@@ -102,6 +112,8 @@ def test(
     }
     log.info("Test results:")
     log.info(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
+    print("Test results:")
+    print(", ".join(f"{key}={val:.2f}" for key, val in avg_losses.items()))
     wandb_log = {
         "images": examples,
         "error": avg_losses,
@@ -127,7 +139,7 @@ def test_main(
     configure(config)
 
     dataset = CatsDataset(config.data.test_data, transform)
-    data_loader = DataLoader(dataset, batch_size=config.data.batch_size)
+    data_loader = DataLoader(dataset, batch_size=config.data.val_batch_size)
 
     generator_criterion = torch.nn.MSELoss()
     discriminator_criterion = torch.nn.MSELoss()

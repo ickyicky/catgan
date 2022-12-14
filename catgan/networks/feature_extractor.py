@@ -18,3 +18,11 @@ class FeatureExtractor(LSGANDiscriminator):
         out = self.conv3(out)
         out = self.conv4(out)
         return out
+
+    @classmethod
+    def from_discriminator(
+        self, discriminator: LSGANDiscriminator
+    ) -> "FeatureExtractor":
+        fe = FeatureExtractor()
+        fe.load_state_dict(discriminator.state_dict())
+        return fe

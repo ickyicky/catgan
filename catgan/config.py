@@ -7,6 +7,7 @@ class DataConfig(BaseModel):
     train_data: str
     test_data: str
     batch_size: int
+    val_batch_size: int
 
 
 class TrainConfig(BaseModel):

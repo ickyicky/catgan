@@ -71,13 +71,13 @@ def set_logging(root: logging.Logger, to_stdout: bool) -> None:
 
     handler = logging.FileHandler(os.path.join("log", logfile))
 
-    handler.setLevel(logging.INFO)
+    handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
     if to_stdout:
         stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setLevel(logging.INFO)
         stdout_handler.setFormatter(formatter)
         root.addHandler(stdout_handler)
 

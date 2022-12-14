@@ -190,21 +190,22 @@ def train_step(
         criterion=generator_criterion,
     )
 
-    cross_lid = calculate_cross_lid(discriminator, fake_batch.detach(), batch)
+    feature_extractor = FeatureExtractor.from_discriminator(discriminator).to(
+        get_device()
+    )
+    cross_lid = calculate_cross_lid(feature_extractor, fake_batch.detach(), batch)
 
     generator_optimizer.step()
     return loss_d_real, loss_d_fake, loss_g, cross_lid
 
 
 def calculate_cross_lid(
-    discriminator: LSGANDiscriminator,
+    feature_extractor: FeatureExtractor,
     fake_batch: Tensor,
     real_batch: Tensor,
 ) -> Tensor:
     with torch.no_grad():
         b_size = real_batch.size(0)
-        feature_extractor = FeatureExtractor.from_discriminator(discriminator)
-        feature_extractor = feature_extractor.to(get_device())
         fake_features = feature_extractor(fake_batch.to(get_device())).cpu()
         real_features = feature_extractor(real_batch.to(get_device())).cpu()
         return compute_crosslid(
@@ -221,6 +222,7 @@ def validate_step(
     discriminator: LSGANDiscriminator,
     discriminator_criterion: torch.nn.MSELoss,
     batch: Tensor,
+    feature_extractor: FeatureExtractor,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     """validate_step.
 
@@ -268,7 +270,7 @@ def validate_step(
 
     # calculate cross lid
     cross_lid = calculate_cross_lid(
-        discriminator=discriminator,
+        feature_extractor=feature_extractor,
         fake_batch=fake_batch,
         real_batch=batch,
     )
@@ -376,6 +378,9 @@ def train(
         with torch.no_grad():
             bar = tqdm(validate_data, leave=False, desc="VALID")
             last_batch_num = len(bar) - 1
+            feature_extractor = FeatureExtractor.from_discriminator(discriminator).to(
+                get_device()
+            )
 
             for i, batch in enumerate(bar):
                 (
@@ -392,6 +397,7 @@ def train(
                     discriminator,
                     discriminator_criterion,
                     batch,
+                    feature_extractor,
                 )
 
                 losses["valid_d_real"].append(loss_d_real)

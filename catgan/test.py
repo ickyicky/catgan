@@ -10,6 +10,7 @@ from .wandb import log as wandblog
 from .config import Config
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
+from .networks.feature_extractor import FeatureExtractor
 from .utils import transform, get_device
 from .dataloader import CatsDataset
 
@@ -72,6 +73,9 @@ def test(
             desc=f"TEST",
         )
         last_batch_num = len(bar) - 1
+        feature_extractor = FeatureExtractor.from_discriminator(discriminator).to(
+            get_device()
+        )
 
         for i, batch in enumerate(bar):
             (
@@ -88,6 +92,7 @@ def test(
                 discriminator,
                 discriminator_criterion,
                 batch,
+                feature_extractor,
             )
 
             losses["test_d_real"].append(loss_d_real)

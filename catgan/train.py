@@ -9,7 +9,7 @@ from typing import Union, Tuple, Optional
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from .networks.feature_extractor import FeatureExtractor
-from .utils import transform, get_device
+from .utils import get_transform, get_device
 from .dataloader import CatsDataset
 from .config import Config
 from .wandb import log as wandblog
@@ -452,8 +452,8 @@ def train_main(
     """
     configure(config)
 
-    dataset = CatsDataset(config.data.train_data, transform)
-    test_dataset = CatsDataset(config.data.test_data, transform)
+    dataset = CatsDataset(config.data.train_data, get_transform(config))
+    test_dataset = CatsDataset(config.data.test_data, get_transform(config))
 
     train_data_loader = DataLoader(
         dataset,

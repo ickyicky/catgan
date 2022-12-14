@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from typing import Optional, Union
+from .config import Config
 
 
 log = logging.getLogger(__name__)
@@ -16,21 +17,32 @@ log = logging.getLogger(__name__)
 Basically https://github.com/gmalivenko/cat-gan.git
 transformation, he did great job analyzing the dataset
 """
-transform = transforms.Compose(
-    [
-        transforms.Resize(64),
-        transforms.RandomCrop(64),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(
-            brightness=0.3,
-            contrast=0.1,
-            saturation=0.3,
-            hue=0.0,
-        ),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5] * 3, [0.5] * 3),
-    ]
-)
+
+
+def get_transform(config: Config) -> transforms.Compose:
+    """get_transform.
+
+    :param config:
+    :type config: Config
+    :rtype: transform.Compose
+    """
+    c = config.data.transform
+    transform = transforms.Compose(
+        [
+            transforms.Resize(c.size),
+            transforms.RandomCrop(c.size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(
+                brightness=c.brightness,
+                contrast=c.contrast,
+                saturation=c.saturation,
+                hue=c.hue,
+            ),
+            transforms.ToTensor(),
+            transforms.Normalize([c.mean] * 3, [c.std] * 3),
+        ]
+    )
+    return transform
 
 
 def set_logging(root: logging.Logger) -> None:

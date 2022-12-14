@@ -1,6 +1,18 @@
 from pydantic import BaseModel
 
 
+class TransformationConfig(BaseModel):
+    """TransformationConfig."""
+
+    brightness: float
+    contrast: float
+    saturation: float
+    hue: float
+    mean: float
+    std: float
+    size: int
+
+
 class DataConfig(BaseModel):
     """DataConfig."""
 
@@ -8,6 +20,7 @@ class DataConfig(BaseModel):
     test_data: str
     batch_size: int
     val_batch_size: int
+    transform: TransformationConfig
 
 
 class TrainConfig(BaseModel):

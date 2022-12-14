@@ -3,6 +3,14 @@ data:
   test_data: "data/test/*.png"
   batch_size: 4
   val_batch_size: 64
+  transform:
+    brightness: 0.3
+    contrast: 0.1
+    saturation: 0.3
+    hue: 0.0
+    mean: 0.5
+    std: 0.5
+    size: 64
 train:
   dis_learning_rate: 0.0001
   gen_learning_rate: 0.0001

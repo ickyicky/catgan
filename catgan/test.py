@@ -11,7 +11,7 @@ from .config import Config
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from .networks.feature_extractor import FeatureExtractor
-from .utils import transform, get_device
+from .utils import get_transform, get_device
 from .dataloader import CatsDataset
 
 
@@ -143,7 +143,7 @@ def test_main(
     """
     configure(config)
 
-    dataset = CatsDataset(config.data.test_data, transform)
+    dataset = CatsDataset(config.data.test_data, get_transform(config))
     data_loader = DataLoader(dataset, batch_size=config.data.val_batch_size)
 
     generator_criterion = torch.nn.MSELoss()

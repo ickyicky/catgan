@@ -55,10 +55,10 @@ if __name__ == "__main__":
 
     config = override_config(config, args.CONFIGURATION)
     config = Config.parse_obj(config)
+    set_logging(log, config.log_to_stdout)
 
     if args.train:
         init("catgan")
-        set_logging(log)
 
         discriminator = load_discriminator(config.discriminator.load_path)
         generator = load_generator(
@@ -74,7 +74,6 @@ if __name__ == "__main__":
         save_model(discriminator, config.discriminator.save_to)
 
     if args.test:
-        set_logging(log)
 
         discriminator = load_discriminator(config.discriminator.load_path)
         generator = load_generator(

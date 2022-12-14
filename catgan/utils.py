@@ -45,11 +45,13 @@ def get_transform(config: Config) -> transforms.Compose:
     return transform
 
 
-def set_logging(root: logging.Logger) -> None:
+def set_logging(root: logging.Logger, to_stdout: bool) -> None:
     """set_logging.
 
     :param root:
     :type root: logging.Logger
+    :param to_stdout:
+    :type to_stdout: bool
     :rtype: None
     """
     formatter = logging.Formatter(
@@ -71,6 +73,12 @@ def set_logging(root: logging.Logger) -> None:
     handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     root.addHandler(handler)
+
+    if to_stdout:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(formatter)
+        root.addHandler(handler)
 
 
 DEVICE: Optional[torch.device] = None

@@ -64,6 +64,8 @@ class Config(BaseModel):
     fake_label: float
     generator_fake_label: float
 
+    log_to_stdout: Optional[bool]
+
 
 def override(config_dict: Dict[str, Any], key: str, val: str) -> Dict[str, Any]:
     """override.

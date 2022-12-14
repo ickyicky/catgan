@@ -21,6 +21,12 @@ if __name__ == "__main__":
         help="configuration file",
         default="config.yaml",
     )
+    parser.add_argument(
+        "--amount",
+        default=16,
+        type=int,
+        help="number of cat images to generate (only suitable for --generate)",
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-t", "--train", action="store_true", help="train models")
@@ -73,4 +79,4 @@ if __name__ == "__main__":
         generator = load_generator(
             config.generator.load_path, config.generator.in_features
         )
-        generate(generator)
+        generate(generator, args.amount)

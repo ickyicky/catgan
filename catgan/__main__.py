@@ -4,7 +4,7 @@ import logging
 from .utils import load_discriminator, load_generator, set_logging, save_model
 from .train import train_main
 from .test import test_main
-from .config import Config
+from .config import Config, override_config
 from .generate import generate
 from .wandb import init
 
@@ -27,6 +27,11 @@ if __name__ == "__main__":
         type=int,
         help="number of cat images to generate (only suitable for --generate)",
     )
+    parser.add_argument(
+        "CONFIGURATION",
+        help="configuration overloading, for example: discriminator.load_path=None or real_label=2.0",
+        nargs="*",
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-t", "--train", action="store_true", help="train models")
@@ -46,7 +51,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config) as f:
-        config = Config.parse_obj(yaml.safe_load(f))
+        config = yaml.safe_load(f)
+
+    config = override_config(config, args.CONFIGURATION)
+    config = Config.parse_obj(config)
 
     if args.train:
         init("catgan")

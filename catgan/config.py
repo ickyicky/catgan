@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional, Dict, Any
 
 
 class TransformationConfig(BaseModel):
@@ -35,7 +36,7 @@ class TrainConfig(BaseModel):
 class ModelConfig(BaseModel):
     """ModelConfig."""
 
-    load_path: str
+    load_path: Optional[str]
     save_to: str
 
 
@@ -62,3 +63,43 @@ class Config(BaseModel):
     real_label: float
     fake_label: float
     generator_fake_label: float
+
+
+def override(config_dict: Dict[str, Any], key: str, val: str) -> Dict[str, Any]:
+    """override.
+
+    :param config_dict:
+    :type config_dict: Dict[str, Any]
+    :param key:
+    :type key: str
+    :param val:
+    :type val: str
+    :rtype: Dict[str, Any]
+    """
+    keys = key.split(".")
+    accessed = config_dict
+
+    if val == "None":
+        val = None
+
+    for key in keys[:-1]:
+        accessed = accessed[key]
+
+    accessed[keys[-1]] = val
+
+    return config_dict
+
+
+def override_config(config_dict: Dict[str, Any], from_cli: str) -> Dict[str, Any]:
+    """override_config.
+
+    :param config_dict:
+    :type config_dict: Dict[str, Any]
+    :param from_cli:
+    :type from_cli: str
+    :rtype: Dict[str, Any]
+    """
+    for value in from_cli:
+        config_dict = override(config_dict, *value.split("="))
+
+    return config_dict

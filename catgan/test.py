@@ -16,7 +16,6 @@ from .dataloader import CatsDataset
 
 
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
 
 
 CONFIG: Optional[Config] = None

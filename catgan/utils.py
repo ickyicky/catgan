@@ -54,6 +54,7 @@ def set_logging(root: logging.Logger, to_stdout: bool) -> None:
     :type to_stdout: bool
     :rtype: None
     """
+    root.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )

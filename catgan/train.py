@@ -17,7 +17,6 @@ from .crosslid import compute_crosslid
 
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 
 
 CONFIG: Optional[Config] = None
@@ -380,7 +379,7 @@ def train(
             losses["train_d"].append(loss_d_real + loss_d_fake)
             losses["train_g"].append(loss_g)
             losses["train_cross_lid"].append(cross_lid)
-            log.info(f"D: {loss_d_real + loss_d_fake} G: {loss_g}")
+            log.debug(f"D: {loss_d_real + loss_d_fake} G: {loss_g}")
             wandblog(
                 {
                     "epoch": epoch,

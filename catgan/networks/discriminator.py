@@ -174,3 +174,5 @@ if __name__ == "__main__":
     noise = torch.randn(1, 3, 64, 64)
     out = net(noise)
     print(out.shape)
+    from torchsummary import summary
+    summary(net, (3, 64, 64))

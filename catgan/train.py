@@ -9,7 +9,7 @@ from typing import Union, Tuple, Optional
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
 from .networks.feature_extractor import FeatureExtractor
-from .utils import get_transform, get_device
+from .utils import get_transform, get_device, save_model
 from .dataloader import CatsDataset
 from .config import Config
 from .wandb import log as wandblog
@@ -165,6 +165,9 @@ def train_step(
     b_size = batch.size(0)
 
     # perform discriminator training on real data
+    for p in discriminator.parameters():
+        p.requires_grad = True
+
     discriminator.zero_grad()
     labels = torch.full((b_size,), CONFIG.real_label, dtype=torch.float)
     loss_d_real = train_model(
@@ -187,6 +190,9 @@ def train_step(
     discriminator_optimizer.step()
 
     # train generator
+    for p in discriminator.parameters():
+        p.requires_grad = True
+
     generator.zero_grad()
     fake_batch = generator(batch_of_noise(b_size, generator.in_features))
     labels = torch.full((b_size,), CONFIG.generator_fake_label, dtype=torch.float)
@@ -461,6 +467,8 @@ def train(
             "error": avg_losses,
         }
         wandblog(wandb_log)
+        save_model(generator, CONFIG.generator.save_to + str(epoch))
+        save_model(discriminator, CONFIG.discriminator.save_to + str(epoch))
 
 
 def train_main(
@@ -502,13 +510,11 @@ def train_main(
         generator.parameters(),
         lr=config.train.gen_learning_rate,
         betas=(0.5, 0.999),
-        weight_decay=0.00002,
     )
     discriminator_optimizer = optim.Adam(
         discriminator.parameters(),
         lr=config.train.dis_learning_rate,
         betas=(0.5, 0.999),
-        weight_decay=0.00002,
     )
 
     generator_criterion = torch.nn.MSELoss()

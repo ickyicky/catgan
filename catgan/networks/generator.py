@@ -206,7 +206,9 @@ class LSGANGenerator(nn.Module):
 
 
 if __name__ == "__main__":
-    net = LSGANGenerator(1000)
-    noise = torch.randn(1, 1000, 1, 1)
+    net = LSGANGenerator(16)
+    noise = torch.randn(1, 16, 1, 1)
     out = net(noise)
     print(out.shape)
+    from torchsummary import summary
+    summary(net, (16, 1, 1))

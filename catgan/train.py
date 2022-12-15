@@ -499,12 +499,16 @@ def train_main(
     )
 
     generator_optimizer = optim.Adam(
-        generator.parameters(), lr=config.train.gen_learning_rate, betas=(0.5, 0.999)
+        generator.parameters(),
+        lr=config.train.gen_learning_rate,
+        betas=(0.5, 0.999),
+        weight_decay=0.00002,
     )
     discriminator_optimizer = optim.Adam(
         discriminator.parameters(),
         lr=config.train.dis_learning_rate,
         betas=(0.5, 0.999),
+        weight_decay=0.00002,
     )
 
     generator_criterion = torch.nn.MSELoss()

@@ -1,7 +1,13 @@
 import argparse
 import yaml
 import logging
-from .utils import load_discriminator, load_generator, set_logging, save_model
+from .utils import (
+    load_discriminator,
+    load_generator,
+    set_logging,
+    save_model,
+    get_mean_std,
+)
 from .train import train_main
 from .test import test_main
 from .config import Config, override_config
@@ -47,6 +53,11 @@ if __name__ == "__main__":
         action="store_true",
         help="generate cat image using pretrained model",
     )
+    group.add_argument(
+        "--calculate-mean-std",
+        action="store_true",
+        help="calculate mean and std for given dataset and all configuration values for image inhancement",
+    )
 
     args = parser.parse_args()
 
@@ -87,3 +98,8 @@ if __name__ == "__main__":
             config.generator.load_path, config.generator.in_features
         )
         generate(generator, args.amount)
+
+    if args.calculate_mean_std:
+        mean, std = get_mean_std(config)
+        print(f"MEAN: {mean}")
+        print(f"STD: {std}")

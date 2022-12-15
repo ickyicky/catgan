@@ -8,11 +8,17 @@ data:
     contrast: 0.1
     saturation: 0.3
     hue: 0.0
-    mean: 0.5
-    std: 0.5
+    mean:
+      - 0.4749
+      - 0.4289
+      - 0.3803
+    std:
+      - 0.2672
+      - 0.2591
+      - 0.2604
     size: 64
 train:
-  dis_learning_rate: 0.00001
+  dis_learning_rate: 0.00003
   gen_learning_rate: 0.0001
   num_of_epochs: 1000
   steps_per_epoch: 400

@@ -6,8 +6,9 @@ import torch
 import torchvision.transforms as transforms
 from .networks.generator import LSGANGenerator
 from .networks.discriminator import LSGANDiscriminator
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from .config import Config
+from tqdm import tqdm
 
 
 log = logging.getLogger(__name__)
@@ -39,10 +40,47 @@ def get_transform(config: Config) -> transforms.Compose:
                 hue=c.hue,
             ),
             transforms.ToTensor(),
-            transforms.Normalize([c.mean] * 3, [c.std] * 3),
+            transforms.Normalize(c.mean, c.std),
         ]
     )
     return transform
+
+
+def get_mean_std(config: Config) -> Tuple[float, float]:
+    from .dataloader import CatsDataset
+    from torch.utils.data.dataloader import DataLoader
+
+    c = config.data.transform
+    transform = transforms.Compose(
+        [
+            transforms.ColorJitter(
+                brightness=c.brightness,
+                contrast=c.contrast,
+                saturation=c.saturation,
+                hue=c.hue,
+            ),
+            transforms.ToTensor(),
+        ]
+    )
+
+    dataset = CatsDataset(config.data.train_data, transform)
+    loader = DataLoader(dataset, batch_size=64, num_workers=0, shuffle=False)
+
+    channels_sum, channels_squared_sum, num_batches = 0, 0, 0
+
+    for data in tqdm(
+        loader,
+        desc="calculating mean std..",
+        leave=True,
+        position=0,
+    ):
+        channels_sum += torch.mean(data, dim=[0, 2, 3])
+        channels_squared_sum += torch.mean(data**2, dim=[0, 2, 3])
+        num_batches += 1
+
+    mean = channels_sum / num_batches
+    std = (channels_squared_sum / num_batches - mean**2) ** 0.5
+    return (mean, std)
 
 
 def set_logging(root: logging.Logger, to_stdout: bool) -> None:

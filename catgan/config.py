@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 class TransformationConfig(BaseModel):
@@ -9,8 +9,8 @@ class TransformationConfig(BaseModel):
     contrast: float
     saturation: float
     hue: float
-    mean: float
-    std: float
+    mean: List[float]
+    std: List[float]
     size: int
 
 

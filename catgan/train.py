@@ -42,16 +42,7 @@ def batch_of_noise(b_size: int, in_features: int) -> Tensor:
     :type in_features: int
     :rtype: Tensor
     """
-    return (
-        torch.FloatTensor(
-            b_size,
-            in_features,
-            1,
-            1,
-        )
-        .normal_(0, 1)
-        .to(get_device())
-    )
+    return torch.randn(b_size, in_features, 1, 1, device=get_device())
 
 
 def common_compute(

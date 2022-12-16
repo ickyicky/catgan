@@ -53,12 +53,6 @@ def get_mean_std(config: Config) -> Tuple[float, float]:
     c = config.data.transform
     transform = transforms.Compose(
         [
-            transforms.ColorJitter(
-                brightness=c.brightness,
-                contrast=c.contrast,
-                saturation=c.saturation,
-                hue=c.hue,
-            ),
             transforms.ToTensor(),
         ]
     )

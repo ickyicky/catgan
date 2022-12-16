@@ -211,4 +211,5 @@ if __name__ == "__main__":
     out = net(noise)
     print(out.shape)
     from torchsummary import summary
+
     summary(net, (16, 1, 1))

@@ -1,6 +1,7 @@
 data:
   train_data: "data/train/*.png"
   test_data: "data/test/*.png"
+  val_data: "data/valid/*.png"
   batch_size: 4
   val_batch_size: 64
   transform:

@@ -28,6 +28,14 @@ if __name__ == "__main__":
         default=20,
         help="percent of data splitted into testing data",
     )
+    parser.add_argument(
+        "-v",
+        "--valid-percentage",
+        action="store",
+        type=int,
+        default=25,
+        help="percent of data splitted into validating data",
+    )
 
     args = parser.parse_args()
 
@@ -51,11 +59,23 @@ if __name__ == "__main__":
 
         os.mkdir("data/train")
         os.mkdir("data/test")
+        os.mkdir("data/valid")
 
         for fname in test_files:
             os.rename(
                 fname,
                 os.path.join("data", "test", os.path.basename(fname)),
+            )
+
+        all_files = glob("data/dataset-part*/*.png")
+        valid_files = sample(
+            all_files, k=int(args.valid_percentage / 100 * len(all_files))
+        )
+
+        for fname in valid_files:
+            os.rename(
+                fname,
+                os.path.join("data", "valid", os.path.basename(fname)),
             )
 
         train_files = glob("data/dataset-part*/*.png")

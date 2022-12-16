@@ -489,7 +489,7 @@ def train_main(
     configure(config)
 
     dataset = CatsDataset(config.data.train_data, get_transform(config))
-    test_dataset = CatsDataset(config.data.test_data, get_transform(config))
+    test_dataset = CatsDataset(config.data.val_data, get_transform(config))
 
     train_data_loader = DataLoader(
         dataset,
